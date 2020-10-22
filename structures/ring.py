@@ -5,73 +5,81 @@ from functools import reduce
 
 
 class Ring(abc.ABC):
+    """
+    Class representing a ring. It consists of a set equipped with two binary operations that generalize the arithmetic
+    operations of addition and multiplication. This class should not be instantiated directly, rather it should be
+    extended with subclasses.
+    """
 
     def __init__(self, element_type):
+        """
+        :param element_type: type - type of the elements contained in this ring
+        """
         self._element_type = element_type
 
     @property
     def element_type(self):
         """
-        Tipo de los elementos de este anillo.
-        :return: type - tipo de los elementos de este anillo
+        Type of the elements contained in this ring.
+        :return: type - type of the elements contained in this ring
         """
         return self._element_type
 
     def add(self, a, b):
         """
-        Operación aditiva. Se debe asegurar que sea asociativa (a + (b + c) = (a + b) + c), conmutativa (a + b = b + a),
-        poseer un elemento neutro 0 (método zero()) y cada elemento un inverso (\forall a \exists b : a + b = 0).
-        :param a: self.element_type - elemento de la izquierda de la suma
-        :param b: self.element_type - elemento de la derecha de la suma
-        :return: self.element_type - la suma a + b
+        Additive operation. It must be associative (a + (b + c) = (a + b) + c), commutative (a + b = b + a),
+        there must be an identity element 0 (property self.zero) such that a + 0 = a for all a and every element must
+        have an opposite (for all a there exists an additive inverse element b such that a + b = 0).
+        :param a: self.element_type - left-hand-side element
+        :param b: self.element_type - right-hand-side element
+        :return: self.element_type - the sum a + b
         """
         raise NotImplementedError
 
     def mul(self, a, b):
         """
-        Operación multiplicativa. Se debe asegurar que sea asociativa (a * (b * c) = (a * b) * c) y distributiva para la
-        suma (a * (b + c) = a * b + a * c , (a + b) * c = a * c + b * c). Si además fuera conmutativo el anillo sería un
-        anillo conmutativo.
-        :param a: self.element_type - elemento de la izquierda del producto
-        :param b: self.element_type - elemento de la derecha del producto
-        :return: self.element_type - el producto a * b
+        Multiplicative operation. It must be associative (a * (b * c) = (a * b) * c) and distributive wrt the sum
+        (a * (b + c) = a * b + a * c , (a + b) * c = a * c + b * c). If this operation is also commutative the ring
+        is called a commutative ring.
+        :param a: self.element_type - left-hand-side element
+        :param b: self.element_type - right-hand-side element
+        :return: self.element_type - the product a * b
         """
         raise NotImplementedError
 
     @property
     def zero(self):
         """
-        Elemento neutro para la suma.
-        :return: self.element_type - elemento neutro para la suma 0 que cumple 0 + a = a \forall a
+        Identity element for the sum.
+        :return: self.element_type - identity element for the sum 0 such that 0 + a = a for all a
         """
         raise NotImplementedError
 
     def negate(self, a):
         """
-        Devuelve el elemento opuesto para la suma para el elemento a. Esto es, el elemento b que cumple a + b = 0.
-        :param a: self.element_type - elemento del que se quiere obtener el opuesto
-        :return: self.element_type - el elemento opuesto de a, b = -a, que cumple a + b = 0
+        Returns the opposite element for the sum of the given element a. That is, en element b such that a + b = 0.
+        :param a: self.element_type - element for which return the opposite
+        :return: self.element_type - a's opposite element: b = -a, such that a + b = 0
         """
         raise NotImplementedError
 
-    def subs(self, a, b):
+    def sub(self, a, b):
         """
-        Devuelve la resta entre los elementos a y b, definida como a + (-b). Las subclases pueden sobreescribir este
-        método para hacerlo más eficiente.
-        :param a: self.element_type - elemento de la izquierda de la resta
-        :param b: self.element_type - elemento de la derecha de la resta
-        :return: self.element_type - la resta a - b
+        Returns the result of subtracting b to a. The subtraction operation is defined as a + (-b), where -b is the
+        opposite of b. Subclasses may override this method to make it more efficient.
+        :param a: self.element_type - left-hand-side element
+        :param b: self.element_type - right-hand-side element
+        :return: self.element_type - the subtraction a - b
         """
         self._check_params(a, b)
         return self.add(a, self.negate(b))
 
     def times(self, a, n):
         """
-        Devuelve el resultado de sumar n veces el elemento por sí mismo, es decir, \sum_{i=1}^n a. En algunos anillos
-        coincidirá con mul(a, b).
-        :param a: self.element_type - elemento a sumar
-        :param n: int - número de veces a sumar (n >= 0)
-        :return: self.element_type - \sum_{i=1}^n a
+        Returns the result of adding n times the element a to itself, that is, the sum from 1 to n of a.
+        :param a: self.element_type - element to be added
+        :param n: int - number of times to add the element (n >= 0)
+        :return: self.element_type - sum(1, n; a) = na
         """
         self._check_params(a)
         return reduce(lambda x, y: self.sum(x, y), (a for _ in range(n)), self.zero)
@@ -79,10 +87,10 @@ class Ring(abc.ABC):
     # TODO merece la pena usar fast exp?
     def pow(self, a, n):
         """
-        Devuelve el resultado de multiplicar n veces el elemento por sí mismo, es decir, \product_{i=1}^n a.
-        :param a: self.element_type - elemento a multiplicar
-        :param n: int - número de veces a multiplicar (n > 0)
-        :return: self.element_type - \product_{i=1}^n a
+        Returns the result of multiplying n times a to itself, that is, the product from 1 to n of a.
+        :param a: self.element_type - element to be multiplied
+        :param n: int - number of times to multiply the element (n > 0)
+        :return: self.element_type - product(1, n; a) = a^n
         """
         self._check_params(a)
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)))
@@ -90,9 +98,9 @@ class Ring(abc.ABC):
     @property
     def is_commutative(self):
         """
-        Determina si el anillo es conmutativo. Por defecto devuelve siempre False y son las subclases las que deben
-        sobreescribir la propiedad en caso de que sea un anillo conmutativo.
-        :return: bool - si el anillo es conmutativo o no
+        Property that determines if this ring is commutative or not. By default it is always False and it is up to
+        subclasses to override it if necessary.
+        :return: bool - True if this ring is commutative, False otherwise
         """
         return False
 
@@ -104,41 +112,47 @@ class Ring(abc.ABC):
 
 # TODO cosas relacionadas con divisores de 0 etc?
 class UnitaryRing(Ring, abc.ABC):
+    """
+    Class representing a special type of ring: an unitary ring. An unitary ring is a ring which also contains a
+    multiplicative identity element. With this, elements may have a multiplicative inverse and those elements are
+    called units.
+    """
 
     @property
     def one(self):
         """
-        Elemento neutro para el producto.
-        :return: self.element_type - elemento neutro para el producto 1 que cumple 1 * a = a \forall a
+        Identity element for the product.
+        :return: self.element_type - identity element for the product 1 such that 1 * a = a for all a
         """
         raise NotImplementedError
 
     def is_unit(self, a):
         """
-        Determina si el elemento a es una unidad de este anillo, esto es, si existe un elemento inverso para a (un
-        elemento b que cumpla a * b = 1).
-        :param a: self.element_type - elemento a comprobar si es unidad
-        :return: bool - si el elemento es unidad o no
+        Determines whether a is an unit of this ring or not, that is, if there exits an inverse element of a for the
+        product (some b such that a * b = 1).
+        :param a: self.element_type - element to be checked
+        :return: bool - True if a is an unit, False otherwise
         """
         raise NotImplementedError
 
     def inverse(self, a):
         """
-        Devuelve el elemento inverso para el producto para el elemento a, en caso de que este exista. Esto es, el
-        elemento b que cumple a * b = 1.
-        :param a: self.element_type - elemento del que se quiere obtener el inverso
-        :return: self.element_type - el elemento inverso de a, b = a^-1, que cumple a * b = 1
-        :raise: ValueError si el elemento no es unidad
+        Returns the inverse element of a for the product, assuming there exits one. That is, the element b such that
+        a * b = 1.
+        :param a: self.element_type - element for which calculate its inverse
+        :return: self.element_type - the inverse element of a: b = a^-1, such that a * b = 1
+        :raise: ValueError - if a is not an unit
         """
         raise NotImplementedError
 
     def pow(self, a, n):
         """
-        Devuelve la potencia a^n. A diferencia del método original (en Ring), este sí admite n <= 0. Si n = 0,
-        el resultado es self.one y si n < 0 el resultado es (a^-1)^n, siempre que a sea unidad.
-        :param a: self.element_type - elemento a multiplicar
-        :param n: int - número de veces a multiplicar
-        :return: self.element_type - \product_{i=1}^n a
+        Returns the power a^n. It differs from the original method (in Ring) in the way that this method does allow
+        n <= 0. If n = 0 self.one will be returned and if n < 0 the result will be (a^-1)^n as long as a is an unit.
+        :param a: self.element_type - element to be multiplied
+        :param n: int - number of times to multiply the element
+        :return: self.element_type - product(1, n; a) = a^n
+        :raise: ValueError - if n < 0 and a is not an unit
         """
         self._check_params(a)
         if n < 0:
