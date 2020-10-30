@@ -1,10 +1,6 @@
 import abc
 from functools import reduce
 
-
-# TODO IMPORTANTE en general se supone que los anillos tienen unidad, los raros son los que no la tienen
-#       podríamos unir UnitaryRing a Ring y simplificar un poco, dejarlo tal cual o renombrar Ring a Rng y el otro Ring
-# https://en.wikipedia.org/wiki/Rng_(algebra)
 # TODO quizá añadir más cosas del libro azul, como dominios, anillos de división y cuerpos (este último seguro)
 
 
@@ -29,6 +25,50 @@ class Ring(abc.ABC):
         """
         return self._dtype
 
+    @property
+    def char(self):
+        """
+        Property that tells the characteristic of the ring, that is, the minimum integer n such that na = 0 for some
+        element a. If such n does not exist, char = 0.
+        :return: int - characteristic of this ring
+        """
+        raise NotImplementedError
+
+    @property
+    def zero(self):
+        """
+        Identity element for the sum.
+        :return: self.dtype - identity element for the sum 0 such that 0 + a = a for all a
+        """
+        raise NotImplementedError
+
+    @property
+    def is_domain(self):
+        """
+        Property that determines if this ring is a domain or not. A domain is a ring that does not contain zero
+        divisors, which means that if a * b = 0, either a = 0 or b = 0. By default it is always False and it is up to
+        subclasses to override it if necessary.
+        :return: bool - True if this ring is a domain, False otherwise
+        """
+        return False
+
+    @property
+    def is_unitary(self):
+        """
+        Property determining if the ring is unitary or not.
+        :return: bool - True if the ring is unitary, False otherwise
+        """
+        return False
+
+    @property
+    def is_commutative(self):
+        """
+        Property that determines if this ring is commutative or not. By default it is always False and it is up to
+        subclasses to override it if necessary.
+        :return: bool - True if this ring is commutative, False otherwise
+        """
+        return False
+
     def add(self, a, b):
         """
         Additive operation. It must be associative (a + (b + c) = (a + b) + c), commutative (a + b = b + a),
@@ -51,11 +91,10 @@ class Ring(abc.ABC):
         """
         raise NotImplementedError
 
-    @property
-    def zero(self):
+    def is_zero_divisor(self, a):
         """
-        Identity element for the sum.
-        :return: self.dtype - identity element for the sum 0 such that 0 + a = a for all a
+        a is a zero divisor if there exists some b that verify ab = 0 or ba = 0.
+        :return: bool - if it is or not
         """
         raise NotImplementedError
 
@@ -106,15 +145,6 @@ class Ring(abc.ABC):
         """
         return self.mul(a, a) == a
 
-    @property
-    def char(self):
-        """
-        Property that tells the characteristic of the ring, that is, the minimum integer n such that na = 0 for some
-        element a. If such n does not exist, char = 0.
-        :return: int - characteristic of this ring
-        """
-        raise NotImplementedError
-
     def __latex__(self):
         """
         Returns the LaTeX representation of this class. This method is here only so subclasses don't forget to add the
@@ -126,7 +156,7 @@ class Ring(abc.ABC):
 
     def _repr_latex_(self):
         # Do not override this method
-        return self.__latex__()
+        return f"$self.__latex__()$"
 
     def _check_params(self, *args):
         for a in args:
@@ -149,6 +179,10 @@ class UnitaryRing(Ring, abc.ABC):
         :return: self.dtype - identity element for the product 1 such that 1 * a = a for all a
         """
         raise NotImplementedError
+
+    @property
+    def is_unitary(self):
+        return True
 
     def is_unit(self, a):
         """
@@ -184,29 +218,10 @@ class UnitaryRing(Ring, abc.ABC):
             n = -n
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)), self.one)
 
-    @property
-    def is_commutative(self):
-        """
-        Property that determines if this ring is commutative or not. By default it is always False and it is up to
-        subclasses to override it if necessary.
-        :return: bool - True if this ring is commutative, False otherwise
-        """
-        return False
-
-    @property
-    def is_domain(self):
-        """
-        Property that determines if this ring is a domain or not. A domain is a ring that does not contain zero
-        divisors, which means that if a * b = 0, either a = 0 or b = 0. By default it is always False and it is up to
-        subclasses to override it if necessary.
-        :return: bool - True if this ring is a domain, False otherwise
-        """
-        return False
-
 
 class CommutativeRing(UnitaryRing, abc.ABC):
     """
-    Class representing of a commutative ring.
+    Class representing a commutative ring. That is, when ab = ba for all a, b
     """
 
     @property
@@ -214,9 +229,12 @@ class CommutativeRing(UnitaryRing, abc.ABC):
         return True
 
 
-class Domain(CommutativeRing, abc.ABC):
+# FIXME: creo que al final lo mejor sería hacer Domain e IntegrityDomain por separado y ya.
+# a domain is a ring  (or equivalently, the only right zero divisor).
+# A commutative domain is called an integral domain.
+class Domain(Ring, abc.ABC):
     """
-    Class representing of an integral domain.
+    Class representing a domain. That is, a ring in which 0 is the only zero divisor.
     """
 
     @property
@@ -224,7 +242,45 @@ class Domain(CommutativeRing, abc.ABC):
         return True
 
 
-class UFD(Domain, abc.ABC):
+class IntegrityDomain(CommutativeRing, Domain, abc.ABC):
+    """
+    Class representing an integrity domain. That is, a commutative ring in which 0 is the only zero divisor.
+    """
+
+
+# Esto era lo que había antes, lo dejo comentado por si acaso
+"""
+class Domain(CommutativeRing, abc.ABC):
+
+    Class representing of an integral domain.
+
+
+    @property
+    def is_domain(self):
+        return True
+
+"""
+
+
+class DivisionRing(UnitaryRing, abc.ABC):
+    """
+    Class representing a division ring. That is, when all non-null elements are units.
+    """
+
+    @property
+    def is_division_ring(self):
+        return True
+
+
+# FIXME: no sé por qué tú lo defines con EuclideanDomain luego, pero te lo dejo por aquí.
+class Field(DivisionRing, CommutativeRing, abc.ABC):
+    """
+    Class representing a field. That is, a commutative division ring.
+    """
+
+
+# TODO: seguir revisando todo esto, me quedé por aquí.
+class UFD(Domain, DivisionRing, abc.ABC):
     """
     Class representing of an Unique Factorization Domain, a domain where all elements can be written as a product of
     prime elements (or irreducible elements), uniquely up to order and units.
@@ -247,6 +303,7 @@ class UFD(Domain, abc.ABC):
         :return: [self.dtype] - list of prime elements that decompose a
         """
         # TODO break RSA :)
+        # jaja irónico
         raise NotImplementedError
 
 
