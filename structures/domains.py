@@ -102,6 +102,7 @@ class EuclideanDomain(UFD, abc.ABC):
         """
         return self.rem(a, b) == self.zero
 
+    # TODO implement
     def gcd(self, a, b):
         """
         Returns the greatest common divisor of a and b, that is, the greatest element which divides both a and b.
@@ -120,6 +121,7 @@ class EuclideanDomain(UFD, abc.ABC):
         """
         return self.quot(self.mul(a, b), self.gcd(a, b))
 
+    # TODO implement
     def bezout(self, a, b):
         """
         Returns two elements that satisfy Bezout's identity, that is, two elements x and y for which
@@ -129,3 +131,12 @@ class EuclideanDomain(UFD, abc.ABC):
         :return: ((self.dtype, self.dtype), self.dtype) - two elements that satisfy Bezout's identity and gcd(a, b)
         """
         raise NotImplementedError
+
+    def are_coprimes(self, a, b):
+        """
+        Returns whether a and b are coprimes or not, that is, gcd(a, b) == 1.
+        :param a: self.dtype - one element to check coprimality
+        :param b: self.dtype - another element to check coprimality
+        :return: bool - True if a and b are coprimes, False otherwise
+        """
+        return self.gcd(a, b) == self.one

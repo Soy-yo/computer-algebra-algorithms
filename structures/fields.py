@@ -39,3 +39,20 @@ class Field(EuclideanDomain, abc.ABC):
     def factor(self, a):
         # Unit factorization is an empty product
         return []
+
+    def value(self, a):
+        return 1 if a != self.zero else 0
+
+    def divides(self, a, b):
+        # All elements but 0 divide each other
+        return a != self.zero
+
+    # Doesn't make sense to implement these methods here
+    def gcd(self, a, b):
+        return NotImplemented
+
+    def lcm(self, a, b):
+        return NotImplemented
+
+    def bezout(self, a, b):
+        return NotImplemented

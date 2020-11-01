@@ -169,7 +169,7 @@ class Ring(abc.ABC):
         LaTeX representation.
         :return: str - LaTeX representation of this class
         """
-        # If there's no such LaTeX representation just raise NotImplemented
+        # If there's no such LaTeX representation just return NotImplemented
         raise NotImplementedError
 
     def _repr_latex_(self):

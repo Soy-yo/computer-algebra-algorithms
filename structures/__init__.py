@@ -1,5 +1,6 @@
 from .domains import Domain, IntegralDomain, UFD, EuclideanDomain
 from .fields import Field
+from .integers import IZ
 from .rings import Ring, UnitaryRing, CommutativeRing, DivisionRing
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     'IntegralDomain',
     'UFD',
     'EuclideanDomain',
-    'Field'
+    'Field',
+    'IZ'
 ]
