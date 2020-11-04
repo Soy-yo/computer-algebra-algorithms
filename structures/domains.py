@@ -1,6 +1,6 @@
 import abc
 
-from .rings import Ring, CommutativeRing, DivisionRing
+from .rings import Ring, CommutativeRing, UnitaryRing
 
 
 class Domain(Ring, abc.ABC):
@@ -18,15 +18,34 @@ class Domain(Ring, abc.ABC):
 
 class IntegralDomain(CommutativeRing, Domain, abc.ABC):
     """
-    Class representing an integrity domain. That is, a commutative ring in which 0 is the only zero divisor.
+    Class representing an integral domain. That is, a commutative ring in which 0 is the only zero divisor.
     """
 
+    def normal_part(self, a):
+        """
+        Returns the normal part of the given element a. The unit normal element of an unit normal class
+        [a] := {b: a = bu, is_unit(u)} is the canonical representative of that class. The normal part of a satisfies
+        a = n(a) * u(a).
+        :param a: self.dtype - element for which compute its normal part
+        :return: self.dtype - normal part of a
+        """
+        raise NotImplementedError
 
-# TODO: seguir revisando todo esto, me quedé por aquí.
-class UFD(IntegralDomain, DivisionRing, abc.ABC):
+    def unit_part(self, a):
+        """
+        Returns the unit part of the given element a. The unit normal element of an unit normal class
+        [a] := {b: a = bu, is_unit(u)} is the canonical representative of that class. The unit part of a satisfies
+        a = n(a) * u(a).
+        :param a: self.dtype - element for which compute its unit part
+        :return: self.dtype - unit part of a
+        """
+        raise NotImplementedError
+
+
+class UFD(IntegralDomain, UnitaryRing, abc.ABC):
     """
-    Class representing of an Unique Factorization Domain, a domain where all elements can be written as a product of
-    prime elements (or irreducible elements), uniquely up to order and units.
+    Class representing of an Unique Factorization Domain, an integral domain where all elements can be written as a
+    product of prime elements (or irreducible elements), uniquely up to order and units.
     """
 
     def is_prime(self, p):
@@ -102,7 +121,6 @@ class EuclideanDomain(UFD, abc.ABC):
         """
         return self.rem(a, b) == self.zero
 
-    # TODO implement
     def gcd(self, a, b):
         """
         Returns the greatest common divisor of a and b, that is, the greatest element which divides both a and b.
@@ -110,7 +128,16 @@ class EuclideanDomain(UFD, abc.ABC):
         :param b: self.dtype - right-hand-side element
         :return: self.dtype - greatest common divisor of a and b
         """
-        raise NotImplementedError
+        r0 = self.normal_part(a)
+        r1 = self.normal_part(b)
+        while r1 != self.zero:
+            r2 = self.rem(r0, r1)
+            r0 = r1
+            r1 = r2
+        print(r0)
+        r0 = self.normal_part(r0)
+        print(r0)
+        return r0
 
     def lcm(self, a, b):
         """
@@ -119,24 +146,37 @@ class EuclideanDomain(UFD, abc.ABC):
         :param b: self.dtype - right-hand-side element
         :return: self.dtype - least common multiple of a and b
         """
-        return self.quot(self.mul(a, b), self.gcd(a, b))
+        return self.quot(self.normal_part(self.mul(a, b)), self.gcd(a, b))
 
-    # TODO implement
     def bezout(self, a, b):
         """
         Returns two elements that satisfy Bezout's identity, that is, two elements x and y for which
         gcd(a, b) = a * x + b * y. It also returns the gcd of a and b.
         :param a: self.dtype - left-hand-side element
         :param b: self.dtype - right-hand-side element
-        :return: ((self.dtype, self.dtype), self.dtype) - two elements that satisfy Bezout's identity and gcd(a, b)
+        :return: (self.dtype, (self.dtype, self.dtype)) - gcd(a, b) and the two elements that satisfy Bezout's identity
         """
-        raise NotImplementedError
+        r0 = self.normal_part(a)
+        r1 = self.normal_part(a)
 
-    def are_coprimes(self, a, b):
+        x0 = self.one
+        y0 = self.zero
+        x1 = self.zero
+        y1 = self.one
+        while r1 != self.zero:
+            (q, r2) = self.full_div(r0, r1)
+            x2 = self.sub(x0, self.mul(q, x1))
+            y2 = self.sub(y0, self.mul(q, y1))
+            (x0, x1, y0, y1, r0, r1) = (x1, x2, y1, y2, r1, r2)
+        x0 = self.quot(x0, self.mul(self.unit_part(a), self.unit_part(r0)))
+        y0 = self.quot(y0, self.mul(self.unit_part(b), self.unit_part(r0)))
+        return self.normal_part(r0), (x0, y0)
+
+    def are_coprime(self, a, b):
         """
-        Returns whether a and b are coprimes or not, that is, gcd(a, b) == 1.
+        Returns whether a and b are coprime or not, that is, gcd(a, b) == 1.
         :param a: self.dtype - one element to check coprimality
         :param b: self.dtype - another element to check coprimality
-        :return: bool - True if a and b are coprimes, False otherwise
+        :return: bool - True if a and b are coprime, False otherwise
         """
         return self.gcd(a, b) == self.one

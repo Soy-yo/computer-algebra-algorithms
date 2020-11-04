@@ -112,7 +112,8 @@ class Ring(abc.ABC):
         :param b: self.dtype - right-hand-side element
         :return: self.dtype - the subtraction a - b
         """
-        self._check_params(a, b)
+        a = a @ self
+        b = b @ self
         return self.add(a, self.negate(b))
 
     def times(self, a, n):
@@ -122,8 +123,8 @@ class Ring(abc.ABC):
         :param n: int - number of times to add the element (n >= 0)
         :return: self.dtype - sum(1, n; a) = na
         """
-        self._check_params(a)
-        return reduce(lambda x, y: self.sum(x, y), (a for _ in range(n)), self.zero)
+        a = a @ self
+        return reduce(lambda x, y: self.add(x, y), (a for _ in range(n)), self.zero)
 
     def pow(self, a, n):
         """
@@ -132,7 +133,7 @@ class Ring(abc.ABC):
         :param n: int - number of times to multiply the element (n > 0)
         :return: self.dtype - product(1, n; a) = a^n
         """
-        self._check_params(a)
+        a = a @ self
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)))
 
     def is_idempotent(self, a):
@@ -151,12 +152,11 @@ class Ring(abc.ABC):
         """
         raise NotImplementedError
 
-    # TODO mira si te parece bien esto (sobre todo por lo del operador)
-    def convert(self, a):
+    def at(self, a):
         """
         Converts the given element to the usual representation of that element in this ring. It may also change its
         type. It can be used in its operator form: a @ Ring.
-        For example, if ring = IZ/4IZ, ring.convert(13) (or 13 @ ring) will return 1.
+        For example, if ring = IZ/4IZ, ring.at(13) (or 13 @ ring) will return 1.
         :param a: object - element to be converted
         :return: self.dtype - usual representation of a
         :raise: ValueError - if a cannot be converted to an element of this ring (i.e. a not in ring)
@@ -174,14 +174,10 @@ class Ring(abc.ABC):
 
     def _repr_latex_(self):
         # Do not override this method
+        latex = self.__latex__()
+        if latex == NotImplemented:
+            return NotImplemented
         return f"${self.__latex__()}$"
-
-    # TODO check contains instead
-    def _check_params(self, *args):
-        for a in args:
-            # FIXME it may not work well with numpy (np.int32/64, np.uint32/64 or np.integer are not the same as int)
-            if not isinstance(a, self._dtype):
-                raise ValueError(f"expected {self._dtype} but got {type(a)}: {a}")
 
     def __contains__(self, a):
         return self.contains(a)
@@ -237,14 +233,14 @@ class UnitaryRing(Ring, abc.ABC):
         :return: self.dtype - product(1, n; a) = a^n
         :raise: ValueError - if n < 0 and a is not an unit
         """
-        self._check_params(a)
+        a = a @ self
         if n < 0:
             a = self.inverse(a)
             n = -n
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)), self.one)
 
 
-class CommutativeRing(UnitaryRing, abc.ABC):
+class CommutativeRing(Ring, abc.ABC):
     """
     Class representing a commutative ring. That is, when ab = ba for all a, b.
     """
@@ -263,15 +259,17 @@ class DivisionRing(UnitaryRing, abc.ABC):
     def is_division_ring(self):
         return True
 
-# FIXME: no sé por qué tú lo defines con EuclideanDomain luego, pero te lo dejo por aquí.
-#           El hecho de que se defina de una forma no implica que no tenga las propiedades de un Dominio Euclideo
-#           Es un anillo de división por definición
-#           Es conmutativo por definición
-#           Es UFD porque porque todos son unidades, por lo que la factorización es vacía
-#           Es Dominio Euclideo porque puedes definir la función v como v(a) = 1
-#               1 = v(a*b) <= v(a) * a(b) = 1
-#               a = b * q + r => r = 0 (v(a) !< v(b))
-# class Field(DivisionRing, CommutativeRing, abc.ABC):
-#     """
-#     Class representing a field. That is, a commutative division ring.
-#     """
+    def div(self, a, b):
+        """
+        Returns the division a/b = a * b^-1.
+        :param a: self.dtype - numerator
+        :param b: self.dtype - denominator
+        :return: self.dtype - division
+        """
+        if b == self.zero:
+            raise ZeroDivisionError
+        return self.mul(a, self.inverse(b))
+
+    def is_unit(self, a):
+        # All elements but 0 are units
+        return a != self.zero

@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 
 from .domains import EuclideanDomain
-from .rings import UnitaryRing
+from .rings import UnitaryRing, CommutativeRing
 
 
 class IntegerRing(EuclideanDomain):
@@ -42,7 +42,7 @@ class IntegerRing(EuclideanDomain):
         return a * b
 
     def full_div(self, a, b):
-        # TODO check // y % do what we want (specially for negative integers)
+        # TODO check // and % do what we want (specially for negative integers)
         a = a @ self
         b = b @ self
         return a // b, a % b
@@ -84,6 +84,14 @@ class IntegerRing(EuclideanDomain):
         a = a @ self
         return abs(a)
 
+    def normal_part(self, a):
+        a = a @ self
+        return abs(a)
+
+    def unit_part(self, a):
+        a = a @ self
+        return 1 if a > 0 else -1 if a < 0 else 0
+
     def is_prime(self, p):
         pass
 
@@ -93,7 +101,7 @@ class IntegerRing(EuclideanDomain):
     def contains(self, a):
         return isinstance(a, (int, np.integer))
 
-    def convert(self, a):
+    def at(self, a):
         if a in self:
             return int(a)
         raise ValueError(f"{a} is not an element of {self}")
@@ -122,7 +130,7 @@ class IntegerRing(EuclideanDomain):
 IZ = IntegerRing()
 
 
-class ModuloIntegers(UnitaryRing):
+class ModuloIntegers(UnitaryRing, CommutativeRing):
     """
     Implementation of the ring of integers modulo n IZ_n = IZ/nIZ := {[0], [1], ..., [n-1]}, where
     [a] := {ka : k in IZ}.
@@ -179,7 +187,7 @@ class ModuloIntegers(UnitaryRing):
 
     def is_unit(self, a):
         a = a @ self
-        return a != 0 and IZ.are_coprimes(a, self._modulo)
+        return a != 0 and IZ.are_coprime(a, self._modulo)
 
     def inverse(self, a):
         # ax + ny = 1 => ax - 1 = (-y)n => ax ≡ 1 mod n
@@ -199,7 +207,7 @@ class ModuloIntegers(UnitaryRing):
     def contains(self, a):
         return isinstance(a, (int, np.integer))
 
-    def convert(self, a):
+    def at(self, a):
         if a in self:
             return int(a) % self._modulo
         raise ValueError(f"{a} is not an element of {self}")
