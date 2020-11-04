@@ -183,7 +183,7 @@ class Ring(abc.ABC):
         return self.contains(a)
 
     def __rmatmul__(self, a):
-        return self.convert(a)
+        return self.at(a)
 
 
 class UnitaryRing(Ring, abc.ABC):
