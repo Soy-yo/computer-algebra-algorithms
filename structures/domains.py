@@ -165,9 +165,8 @@ class EuclideanDomain(UFD, abc.ABC):
             x2 = self.sub(x0, self.mul(q, x1))
             y2 = self.sub(y0, self.mul(q, y1))
             (x0, x1, y0, y1, r0, r1) = (x1, x2, y1, y2, r1, r2)
-        # FIXME El problema de esta normalización es que puede que divida por cero, y salte error
-        # x0 = self.quot(x0, self.mul(self.unit_part(a), self.unit_part(r0)))
-        # y0 = self.quot(y0, self.mul(self.unit_part(b), self.unit_part(r0)))
+        x0 = self.quot(x0, self.mul(self.unit_part(a), self.unit_part(r0)))
+        y0 = self.quot(y0, self.mul(self.unit_part(b), self.unit_part(r0)))
         return self.normal_part(r0), (x0, y0)
 
     def are_coprime(self, a, b):
