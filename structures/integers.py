@@ -90,7 +90,7 @@ class IntegerRing(EuclideanDomain):
 
     def unit_part(self, a):
         a = a @ self
-        return 1 if a > 0 else -1 if a < 0 else 0
+        return 1 if a >= 0 else -1
 
     def is_prime(self, p):
         pass
