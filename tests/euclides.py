@@ -12,14 +12,14 @@ class IntTest(unittest.TestCase):
 
     tests = [
         (60, 36, 12, "easy test"),
-        (0, 5, 5, "zero works"),
-        (7, 0, 7, "zero works"),
-        (0, 0, 0, "zero works"),
-        (1, 3274, 1, "one works"),
-        (5460, 1, 1, "one works"),
-        (-60, 36, 12, "negative works"),
-        (60, -36, 12, "negative works"),
-        (-60, -36, 12, "negative works")
+        (0, 5, 5, "zero test"),
+        (7, 0, 7, "zero test"),
+        (0, 0, 0, "zero test"),
+        (1, 3274, 1, "one test"),
+        (5460, 1, 1, "one test"),
+        (-60, 36, 12, "negative test"),
+        (60, -36, 12, "negative test"),
+        (-60, -36, 12, "negative test")
     ]
 
     def test_gcd(self):
@@ -29,7 +29,7 @@ class IntTest(unittest.TestCase):
 
         for _ in range(self.random_tests):
             a, b = np.random.randint(self.low, self.high, (2,), dtype=np.int32)
-            self.assertEqual(IZ.gcd(a, b), np.gcd(a, b), "random works")
+            self.assertEqual(IZ.gcd(a, b), np.gcd(a, b), "random test")
 
     def test_bezout(self):
 
@@ -41,8 +41,8 @@ class IntTest(unittest.TestCase):
         for _ in range(self.random_tests):
             a, b = np.random.randint(self.low, self.high, (2,), dtype=np.int32)
             g, (x, y) = IZ.bezout(a, b)
-            self.assertEqual(g, np.gcd(a, b), "bezout gcd - random works")
-            self.assertEqual(a * x + b * y, g, f"bezout {a}*{x} + {b}*{y} == {g} - random works")
+            self.assertEqual(g, np.gcd(a, b), "bezout gcd - random test")
+            self.assertEqual(a * x + b * y, g, f"bezout {a}*{x} + {b}*{y} == {g} - random test")
 
 
 if __name__ == '__main__':

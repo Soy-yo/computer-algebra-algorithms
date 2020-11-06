@@ -1,6 +1,7 @@
 from .domains import Domain, IntegralDomain, UFD, EuclideanDomain
 from .fields import Field
 from .integers import IZ
+from .polynomials import Var, Polynomial
 from .rings import Ring, UnitaryRing, CommutativeRing, DivisionRing
 
 __all__ = [
@@ -13,5 +14,7 @@ __all__ = [
     'UFD',
     'EuclideanDomain',
     'Field',
-    'IZ'
+    'IZ',
+    'Var',
+    'Polynomial'
 ]
