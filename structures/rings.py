@@ -2,6 +2,7 @@ import abc
 from functools import reduce
 
 
+# TODO: permitir los corchetes para devolver su anillo de polinomios :O
 class Ring(abc.ABC):
     """
     Class representing a ring. It consists of a set equipped with two binary operations that generalize the arithmetic

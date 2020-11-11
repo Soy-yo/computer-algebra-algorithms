@@ -192,10 +192,10 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
     def inverse(self, a):
         # ax + ny = 1 => ax - 1 = (-y)n => ax ≡ 1 mod n
         a_ = a @ self
-        (x, _), gcd = IZ.bezout(a_, self._modulo)
+        gcd, (x, _) = IZ.bezout(a_, self._modulo)
         if gcd != 1:
             raise ValueError(f"only units have inverse, but {a} is not an unit")
-        return x
+        return x @ self
 
     def pow(self, a, n):
         a = a @ self
