@@ -75,6 +75,9 @@ class IntegerRing(EuclideanDomain):
             n = -n
         return a ** n
 
+    def eq(self, a, b):
+        return a @ self == b @ self
+
     def is_idempotent(self, a):
         a = a @ self
         # Only idempotent elements are 0 and 1
@@ -200,6 +203,9 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
     def pow(self, a, n):
         a = a @ self
         return (a ** n) % self._modulo
+
+    def eq(self, a, b):
+        return a @ self == b @ self
 
     def is_zero_divisor(self, a):
         return not self.is_unit(a)

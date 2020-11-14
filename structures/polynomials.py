@@ -1,61 +1,9 @@
 from functools import reduce
+from itertools import accumulate
 
 import numpy as np
 
 
-# TODO permitir operaciones para devolver polinomios (maybe)
-class Var:
-
-    def __init__(self, x):
-        self.x = x
-
-    def __eq__(self, other):
-        return self.x == other.x
-
-    def __add__(self, a):
-        return Polynomial([a, 1], self.x)
-
-    def __radd__(self, a):
-        return self + a
-
-    def __neg__(self):
-        return Polynomial([0, -1], self.x)
-
-    def __sub__(self, a):
-        return self + (-a)
-
-    def __rsub__(self, a):
-        return self + (-a)
-
-    def __mul__(self, a):
-        return Polynomial([0, a], self.x)
-
-    def __rmul__(self, a):
-        return self * a
-
-    def __pow__(self, n):
-        if n < 0:
-            return NotImplemented
-        if n == 0:
-            return 1
-        result = [0] * (n + 1)
-        result[-1] = 1
-        return Polynomial(result, self.x)
-
-    def as_polynomial(self):
-        return Polynomial([0, 1], self.x)
-
-    def __latex__(self):
-        return self.x
-
-    def _repr_latex_(self):
-        return f"${self.__latex__()}$"
-
-    def __repr__(self):
-        return self.x
-
-
-# TODO: función call p(5) y eso :)
 class Polynomial:
 
     def __init__(self, coefficients, var, dtype=None):
@@ -87,10 +35,6 @@ class Polynomial:
         return self._coefficients[index]
 
     def __add__(self, q):
-        if isinstance(q, Var):
-            self._check_var(q)
-            return self + q.as_polynomial()
-
         if not isinstance(q, Polynomial):
             new_a0 = self._coefficients[0] + q
             if new_a0 == NotImplemented:
@@ -109,10 +53,6 @@ class Polynomial:
         return Polynomial(coeff_p + coeff_q, self._var.x)
 
     def __radd__(self, q):
-        if isinstance(q, Var):
-            self._check_var(q)
-            return q.as_polynomial() + self
-
         new_a0 = q + self._coefficients[0]
         if new_a0 == NotImplemented:
             return NotImplemented
@@ -127,10 +67,6 @@ class Polynomial:
         return self + (-q)
 
     def __rsub__(self, q):
-        if isinstance(q, Var):
-            self._check_var(q)
-            return q.as_polynomial() - self
-
         new_a0 = q - self._coefficients[0]
         if new_a0 == NotImplemented:
             return NotImplemented
@@ -140,10 +76,6 @@ class Polynomial:
 
     # TODO: averiguar cómo no sacar floats
     def __mul__(self, q):
-        if isinstance(q, Var):
-            self._check_var(q)
-            return self * q.as_polynomial()
-
         if not isinstance(q, Polynomial):
             new_coeff = self._coefficients * q
             if new_coeff[0] == NotImplemented:
@@ -158,10 +90,6 @@ class Polynomial:
         return Polynomial(result, self._var.x)
 
     def __rmul__(self, q):
-        if isinstance(q, Var):
-            self._check_var(q)
-            return q.as_polynomial() * self
-
         new_coeff = q * self._coefficients
         if new_coeff[0] == NotImplemented:
             return NotImplemented
@@ -175,14 +103,19 @@ class Polynomial:
         return reduce(lambda x, y: x * y, (self for _ in range(n)))
 
     def __eq__(self, q):
-        if isinstance(q, Var):
-            return self == q.as_polynomial()
-
         if not isinstance(q, Polynomial):
             if self.degree > 0:
                 return False
             return self._coefficients[0] == q
         return self._var == q.var and (self._coefficients == q.coefficients).all()
+
+    def __call__(self, x):
+        xs = np.array(list(accumulate([1] + [x] * self.degree, lambda a, b: a * b)))
+        return (self._coefficients * xs).sum()
+
+    def derivative(self):
+        coeffs = [i * c for (i, c) in enumerate(self._coefficients)]
+        return Polynomial(coeffs[1:], self._var.x, self._coefficients.dtype)
 
     def _check_var(self, var):
         if self._var != var:
@@ -209,3 +142,16 @@ class Polynomial:
             for k, c in reversed(list(enumerate(self._coefficients)))
             if c != 0
         ]).replace('+ -', '- ')
+
+
+class Var(Polynomial):
+
+    def __init__(self, x, dtype=None):
+        super().__init__([0, 1], self, dtype)
+        self.x = x
+
+    def __latex__(self):
+        return self.x
+
+    def __repr__(self):
+        return self.x

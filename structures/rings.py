@@ -137,6 +137,9 @@ class Ring(abc.ABC):
         a = a @ self
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)))
 
+    def eq(self, a, b):
+        raise NotImplementedError
+
     def is_idempotent(self, a):
         """
         Determines if the given element is idempotent, that is, a^2 = a.
