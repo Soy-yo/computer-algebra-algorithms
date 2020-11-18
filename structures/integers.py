@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 
 from .domains import EuclideanDomain
@@ -146,11 +144,6 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
         super(ModuloIntegers, self).__init__(int)
         if n <= 1:
             raise ValueError("n must be a greater than 1 (IZ/IZ = {0}, so it is not an unitary ring)")
-        if IZ.is_prime(n):
-            warnings.warn(
-                "It is not recommended to use ModuloIntegers when n is prime "
-                "as it is actually a field and implements more methods"
-            )
         self._modulo = n
 
     @property

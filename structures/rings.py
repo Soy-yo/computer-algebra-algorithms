@@ -138,6 +138,12 @@ class Ring(abc.ABC):
         return reduce(lambda x, y: self.mul(x, y), (a for _ in range(n)))
 
     def eq(self, a, b):
+        """
+        Returns whether the given elements are equal or not in this ring.
+        :param a: self.dtype - left-hand-side element
+        :param b: self.dtype - right-hand-side element
+        :return: bool - whether a and b are equal or not
+        """
         raise NotImplementedError
 
     def is_idempotent(self, a):

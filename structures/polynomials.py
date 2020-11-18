@@ -5,34 +5,78 @@ import numpy as np
 
 
 class Polynomial:
+    """
+    Class representing a polynomial a_0 + a_1 x + ... + a_n x^n over a variable. In general, it uses numbers to
+    represent its coefficients.
+    """
 
     def __init__(self, coefficients, var, dtype=None):
+        """
+        :param coefficients: [any] - coefficients of the polynomial, starting with a0
+        :param var: Var/str - variable of the polynomial
+        :param dtype: type - dtype to pass to numpy array
+        """
         self._coefficients = np.trim_zeros(np.array(coefficients, dtype=dtype), trim='b')
         if self._coefficients.size == 0:
             self._coefficients = np.array([0], dtype=dtype)
-        self._var = var if isinstance(var, Var) else Var(var)
+        self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
     @property
     def coefficients(self):
-        return self._coefficients.copy()
+        """
+        Read-only view of the coefficients.
+        :return: np.array - read-only view of the coefficients
+        """
+        coeff = self._coefficients.view()
+        coeff.flags.writeable = False
+        return coeff
 
     @property
     def var(self):
+        """
+        Variable instance of this polynomial.
+        :return: Var - variable instance of this polynomial
+        """
         return self._var
 
     @var.setter
     def var(self, var):
-        self._var = var if isinstance(var, Var) else Var(var)
+        """
+        Sets the variable of this polynomial.
+        :param var: Var/str - variable of the polynomial
+        """
+        self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
     @property
     def degree(self):
+        """
+        Degree of this polynomial, that is, the maximum exponent of the variable in all terms.
+        :return: int - degree of this polynomial
+        """
         return len(self._coefficients) - 1
 
+    @property
     def terms(self):
+        """
+        Number of terms in the polynomial.
+        :return: int - number of terms in the polynomial
+        """
         return len([0 for t in self._coefficients if t != 0])
 
-    def term(self, index):
-        return self._coefficients[index]
+    def __len__(self):
+        return self.terms
+
+    def term(self, n):
+        """
+        Returns the term of degree n.
+        :param n: int - degree of the term
+        :return: Polynomial - polynomial representing the n-th term
+        """
+        if n > self.degree:
+            raise ValueError(f"{self} has degree lower than {n}")
+        coeffs = self._coefficients.copy()[:n]
+        coeffs[:n - 1] = 0
+        return Polynomial(coeffs, self._var.x, self._coefficients.dtype)
 
     def __add__(self, q):
         if not isinstance(q, Polynomial):
@@ -114,6 +158,11 @@ class Polynomial:
         return (self._coefficients * xs).sum()
 
     def derivative(self):
+        """
+        Return the derivative of this polynomial, that is, if f = sum(i=0, n; a_i*x^i), its derivative
+        f' = sum(i=1, n; i * a_i * x^i-1).
+        :return: Polynomial - the derivative of this polynomial
+        """
         coeffs = [i * c for (i, c) in enumerate(self._coefficients)]
         return Polynomial(coeffs[1:], self._var.x, self._coefficients.dtype)
 
@@ -121,6 +170,7 @@ class Polynomial:
         if self._var != var:
             raise ValueError(f"cannot operate with different variables: {self._var} and {var} found")
 
+    # TODO add parentheses if a_i has length and len(a_i) > 1
     def __latex__(self):
         latex = getattr(self._coefficients, "__latex__", None)
         return '+'.join([
@@ -144,7 +194,14 @@ class Polynomial:
         ]).replace('+ -', '- ')
 
 
+# TODO override __xor__ = __pow__ so we can use x^2 instead of x**2 ?
 class Var(Polynomial):
+    """
+    Class representing a variable. It extends Polynomial so it can be operated and create polynomials easily. For
+    example:
+    >>> x = Var('x')
+    >>> f = x**2 + 2*x + 1 # returns the polynomial with coefficients [1, 2, 1]
+    """
 
     def __init__(self, x, dtype=None):
         super().__init__([0, 1], self, dtype)
