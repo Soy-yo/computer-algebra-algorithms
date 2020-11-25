@@ -1,7 +1,12 @@
+import abc
 from functools import reduce
 from itertools import accumulate
 
 import numpy as np
+
+from .domains import UFD
+from .fields import Field
+from .rings import UnitaryRing
 
 
 class Polynomial:
@@ -146,6 +151,9 @@ class Polynomial:
             return self
         return reduce(lambda x, y: x * y, (self for _ in range(n)))
 
+    def __xor__(self, n):
+        return self.__pow__(n)
+
     def __eq__(self, q):
         if not isinstance(q, Polynomial):
             if self.degree > 0:
@@ -194,7 +202,6 @@ class Polynomial:
         ]).replace('+ -', '- ')
 
 
-# TODO override __xor__ = __pow__ so we can use x^2 instead of x**2 ?
 class Var(Polynomial):
     """
     Class representing a variable. It extends Polynomial so it can be operated and create polynomials easily. For
@@ -212,3 +219,146 @@ class Var(Polynomial):
 
     def __repr__(self):
         return self.x
+
+
+class PolynomialRing(UnitaryRing, abc.ABC):
+
+    def __init__(self, base_ring, var):
+        super(PolynomialRing, self).__init__(Polynomial)
+        self._base_ring = base_ring
+        self._var = Var(var.x) if isinstance(var, Var) else Var(var)
+
+    @property
+    def zero(self):
+        return self._base_ring.zero
+
+    @property
+    def one(self):
+        return self._base_ring.one
+
+    @property
+    def char(self):
+        return self._base_ring.char
+
+    def add(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a + b
+
+    def mul(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a * b
+
+    def negate(self, a):
+        a = a @ self
+        return -a
+
+    def eq(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a == b
+
+    # TODO ???
+    def is_unit(self, a):
+        pass
+
+    def inverse(self, a):
+        pass
+
+    def is_zero_divisor(self, a):
+        pass
+
+    def contains(self, a):
+        return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
+
+    def at(self, a):
+        if a in self._base_ring:
+            return Polynmial([a @ self._base_ring], self._var)
+        if a not in self:
+            raise ValueError("the element must be a polynomial")
+        coeffs = a.coefficients
+        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
+
+    def __latex__(self):
+        return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
+
+
+class PolynomialUFD(UFD, PolynomialRing):
+
+    def __init__(self, base_ring, var):
+        super(PolynomialUFD, self).__init__(base_ring, var)
+
+    def is_prime(self, p):
+        pass
+
+    def factor(self, a):
+        pass
+
+    def normal_part(self, a):
+        a = a @ self
+        u = self.unit_part(a)
+        return self.divmod(a, u)[0]
+
+    def unit_part(self, a):
+        a = a @ self
+        return self._base_ring.unit_part(a.coefficients[-1])
+
+    def is_unit(self, a):
+        pass
+
+    def inverse(self, a):
+        pass
+
+    # GCD de los coeficientes
+    def content(self, a):
+        a = a @ self
+        return self._base_ring.gcd(*a.coefficients)
+
+    # a = u(a) * cont(a) * pp(a)
+    def primitive_part(self, a):
+        a = a @ self
+        return self.divmod(a, self.mul(self.unit_part(a), self.content(a)))[0]
+
+    # Divides a(x) / b(x) and returns it's quotient and remainder
+    def divmod(self, a, b):
+        """
+        :param a:
+        :param b:
+        :return:
+        """
+        a = a @ self
+        b = b @ self
+
+        quotient, remainder = self.zero, a
+
+        while remainder.degree() >= b.degree:
+            monomial_exponent = remainder.degree() - b.degree
+            monomial_zeros = [self.zero for _ in range(monomial_exponent)]
+            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]])
+
+            quotient += monomial_divisor
+            remainder -= monomial_divisor * divisor
+
+        return quotient, remainder
+
+    def gcd(self, a, b, *args):
+        c = self.primitive_part(a)
+        d = self.primitive_part(b)
+
+        while d != self.zero:
+            r = self.divmod(c, d)[1]
+            c = d
+            d = self.primitive_part(r)
+
+        gamma = self._base_ring.gcd(self.content(a), self.content(b))
+        g = self.mul(gamma, c)
+        if args:
+            return self.gcd(g, args[0], *args[1:])
+        return g
+
+
+class PolynomialField(Field, PolynomialUFD):
+
+    def __init__(self, base_ring, var):
+        super(PolynomialField, self).__init__(base_ring, var)

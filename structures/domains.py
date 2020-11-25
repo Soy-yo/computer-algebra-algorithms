@@ -1,5 +1,6 @@
 import abc
 
+from .polynomials import PolynomialUFD
 from .rings import Ring, CommutativeRing, UnitaryRing
 
 
@@ -66,6 +67,9 @@ class UFD(IntegralDomain, UnitaryRing, abc.ABC):
         """
         raise NotImplementedError
 
+    def __getitem__(self, var):
+        return PolynomialUFD(self, var)
+
 
 class EuclideanDomain(UFD, abc.ABC):
     """
@@ -121,11 +125,12 @@ class EuclideanDomain(UFD, abc.ABC):
         """
         return self.rem(a, b) == self.zero
 
-    def gcd(self, a, b):
+    def gcd(self, a, b, *args):
         """
         Returns the greatest common divisor of a and b, that is, the greatest element which divides both a and b.
         :param a: self.dtype - left-hand-side element
         :param b: self.dtype - right-hand-side element
+        :param args: self.dtype - undefined number of extra elements to compute gcd for
         :return: self.dtype - greatest common divisor of a and b
         """
         r0 = self.normal_part(a)
@@ -134,6 +139,8 @@ class EuclideanDomain(UFD, abc.ABC):
             r2 = self.rem(r0, r1)
             r0 = r1
             r1 = r2
+        if args:
+            return self.gcd(self.normal_part(r0), args[0], *args[1:])
         return self.normal_part(r0)
 
     def lcm(self, a, b):
