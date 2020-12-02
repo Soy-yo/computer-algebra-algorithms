@@ -4,9 +4,7 @@ from itertools import accumulate
 
 import numpy as np
 
-from .domains import UFD
-from .fields import Field
-from .rings import UnitaryRing
+from . import domains, fields, rings
 
 
 class Polynomial:
@@ -221,7 +219,7 @@ class Var(Polynomial):
         return self.x
 
 
-class PolynomialRing(UnitaryRing, abc.ABC):
+class PolynomialRing(rings.UnitaryRing, abc.ABC):
 
     def __init__(self, base_ring, var):
         super(PolynomialRing, self).__init__(Polynomial)
@@ -274,7 +272,7 @@ class PolynomialRing(UnitaryRing, abc.ABC):
 
     def at(self, a):
         if a in self._base_ring:
-            return Polynmial([a @ self._base_ring], self._var)
+            return Polynomial([a @ self._base_ring], self._var)
         if a not in self:
             raise ValueError("the element must be a polynomial")
         coeffs = a.coefficients
@@ -284,7 +282,7 @@ class PolynomialRing(UnitaryRing, abc.ABC):
         return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
 
 
-class PolynomialUFD(UFD, PolynomialRing):
+class PolynomialUFD(domains.UFD, PolynomialRing):
 
     def __init__(self, base_ring, var):
         super(PolynomialUFD, self).__init__(base_ring, var)
@@ -330,15 +328,18 @@ class PolynomialUFD(UFD, PolynomialRing):
         a = a @ self
         b = b @ self
 
+        if a.var != b.var:
+            raise ValueError("variables must be the same")
+
         quotient, remainder = self.zero, a
 
         while remainder.degree() >= b.degree:
             monomial_exponent = remainder.degree() - b.degree
             monomial_zeros = [self.zero for _ in range(monomial_exponent)]
-            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]])
+            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]], a.var)
 
             quotient += monomial_divisor
-            remainder -= monomial_divisor * divisor
+            remainder -= monomial_divisor * b
 
         return quotient, remainder
 
@@ -358,7 +359,7 @@ class PolynomialUFD(UFD, PolynomialRing):
         return g
 
 
-class PolynomialField(Field, PolynomialUFD):
+class PolynomialField(fields.Field, PolynomialUFD):
 
     def __init__(self, base_ring, var):
         super(PolynomialField, self).__init__(base_ring, var)

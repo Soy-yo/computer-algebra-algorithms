@@ -1,10 +1,9 @@
 import abc
 
-from .polynomials import PolynomialUFD
-from .rings import Ring, CommutativeRing, UnitaryRing
+from . import polynomials, rings
 
 
-class Domain(Ring, abc.ABC):
+class Domain(rings.Ring, abc.ABC):
     """
     Class representing a domain. That is, a ring in which 0 is the only zero divisor.
     """
@@ -17,7 +16,7 @@ class Domain(Ring, abc.ABC):
         return a == self.zero
 
 
-class IntegralDomain(CommutativeRing, Domain, abc.ABC):
+class IntegralDomain(rings.CommutativeRing, Domain, abc.ABC):
     """
     Class representing an integral domain. That is, a commutative ring in which 0 is the only zero divisor.
     """
@@ -43,7 +42,7 @@ class IntegralDomain(CommutativeRing, Domain, abc.ABC):
         raise NotImplementedError
 
 
-class UFD(IntegralDomain, UnitaryRing, abc.ABC):
+class UFD(IntegralDomain, rings.UnitaryRing, abc.ABC):
     """
     Class representing of an Unique Factorization Domain, an integral domain where all elements can be written as a
     product of prime elements (or irreducible elements), uniquely up to order and units.
@@ -68,7 +67,7 @@ class UFD(IntegralDomain, UnitaryRing, abc.ABC):
         raise NotImplementedError
 
     def __getitem__(self, var):
-        return PolynomialUFD(self, var)
+        return polynomials.PolynomialUFD(self, var)
 
 
 class EuclideanDomain(UFD, abc.ABC):
