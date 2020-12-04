@@ -1,10 +1,9 @@
-import abc
 from functools import reduce
 from itertools import accumulate
 
 import numpy as np
 
-from . import domains, fields, rings
+import structures
 
 
 class Polynomial:
@@ -219,10 +218,10 @@ class Var(Polynomial):
         return self.x
 
 
-class PolynomialRing(rings.UnitaryRing, abc.ABC):
+class PolynomialUFD(structures.domains.UFD):
 
     def __init__(self, base_ring, var):
-        super(PolynomialRing, self).__init__(Polynomial)
+        super(PolynomialUFD, self).__init__(Polynomial)
         self._base_ring = base_ring
         self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
@@ -270,25 +269,11 @@ class PolynomialRing(rings.UnitaryRing, abc.ABC):
     def contains(self, a):
         return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
 
-    def at(self, a):
-        if a in self._base_ring:
-            return Polynomial([a @ self._base_ring], self._var)
-        if a not in self:
-            raise ValueError("the element must be a polynomial")
-        coeffs = a.coefficients
-        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
-
-    def __latex__(self):
-        return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
-
-
-class PolynomialUFD(domains.UFD, PolynomialRing):
-
-    def __init__(self, base_ring, var):
-        super(PolynomialUFD, self).__init__(base_ring, var)
+    def is_irreducible(self, p):
+        pass
 
     def is_prime(self, p):
-        pass
+        return self.is_irreducible(p)
 
     def factor(self, a):
         pass
@@ -301,12 +286,6 @@ class PolynomialUFD(domains.UFD, PolynomialRing):
     def unit_part(self, a):
         a = a @ self
         return self._base_ring.unit_part(a.coefficients[-1])
-
-    def is_unit(self, a):
-        pass
-
-    def inverse(self, a):
-        pass
 
     # GCD de los coeficientes
     def content(self, a):
@@ -358,8 +337,41 @@ class PolynomialUFD(domains.UFD, PolynomialRing):
             return self.gcd(g, args[0], *args[1:])
         return g
 
+    def at(self, a):
+        if a in self._base_ring:
+            return Polynomial([a @ self._base_ring], self._var)
+        if a not in self:
+            raise ValueError("the element must be a polynomial")
+        coeffs = a.coefficients
+        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
 
-class PolynomialField(fields.Field, PolynomialUFD):
+    def __latex__(self):
+        return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
+
+
+# TODO fix MRO :(
+class PolynomialField(PolynomialUFD, structures.fields.Field):
 
     def __init__(self, base_ring, var):
         super(PolynomialField, self).__init__(base_ring, var)
+
+    def is_irreducible(self, p):
+        def poly(k):
+            coeffs = np.zeros(k + 1)
+            coeffs[1] = -1
+            coeffs[-1] = 1
+            return Polynomial(coeffs, self._var)
+
+        p = p @ self
+        if isinstance(self._base_ring, structures.fields.IF):
+            n = self._base_ring.n
+            q = self._base_ring.q
+            if self.divmod(poly(q), p)[1] != 0:
+                return False
+
+            factors = set(structures.integers.IZ.factor(n))
+            for r in factors:
+                if self.gcd(p, poly(n / r)) != 1:
+                    return False
+
+            return True

@@ -2,29 +2,36 @@ import abc
 
 import numpy as np
 
-from . import domains, polynomials, rings, integers
+import structures
 
 
-class Field(rings.DivisionRing, rings.CommutativeRing, domains.Domain, abc.ABC):
+class Field(structures.rings.DivisionRing, structures.rings.CommutativeRing, structures.domains.Domain, abc.ABC):
     """
     Class representing a field, a commutative ring for which all elements are units but 0.
     """
 
     def __getitem__(self, var):
-        return polynomials.PolynomialField(self, var)
+        return structures.polynomials.PolynomialField(self, var)
 
 
 class FiniteField(Field):
 
-    def __init__(self, p, n=1):
-        super(FiniteField, self).__init__(polynomials.Polynomial)
+    # TODO comprobar irreduciblidad o generar alguno si hace falta
+    def __init__(self, p, n=1, base_poly=None):
+        super(FiniteField, self).__init__(structures.polynomials.Polynomial)
         if n <= 0:
             raise ValueError("n must be positive")
-        if not integers.IZ.is_prime(p):
+        if not structures.integers.IZ.is_prime(p):
             raise ValueError("p must be prime")
-        self._base_ring = integers.ModuloIntegers(p)
+        if base_poly is not None:
+            self._base_ring = structures.integers.ModuloIntegers(p)[base_poly.var]
+        elif n == 1:
+            self._base_ring = structures.integers.ModuloIntegers(p)['']
+        else:
+            raise ValueError("a modulo polynomial must be specified for IF(p, n>1)")
         self._p = p
         self._n = n
+        self._base_poly = base_poly if base_poly is not None else structures.polynomials.Polynomial([0, 1], '')
 
     @property
     def p(self):
@@ -40,11 +47,11 @@ class FiniteField(Field):
 
     @property
     def zero(self):
-        return 0
+        return structures.polynomials.Polynomial([0], self._base_ring.var, dtype=int)
 
     @property
     def one(self):
-        return 1
+        return structures.polynomials.Polynomial([1], self._base_ring.var, dtype=int)
 
     @property
     def char(self):
@@ -64,9 +71,13 @@ class FiniteField(Field):
         b = b @ self
         return (a * b) @ self
 
-    # TODO algoretmo
     def inverse(self, a):
-        pass
+        # a(t)x + q(t)y = 1 => a(t)x - 1 = (-y)q(t) => a(t)x ≡ 1 mod q(t)
+        a_ = a @ self
+        gcd, (x, _) = self._base_ring.bezout(a_, self._base_poly)
+        if gcd != 1:
+            raise ValueError(f"only units have inverse, but {a} is not an unit")
+        return x @ self
 
     def eq(self, a, b):
         a = a @ self
@@ -74,11 +85,10 @@ class FiniteField(Field):
         return a == b
 
     def contains(self, a):
-        return isinstance(a, (polynomials.Polynomial, int, np.integer))
+        return isinstance(a, (structures.polynomials.Polynomial, int, np.integer))
 
-    # TODO Esta es la mayor gracia
     def at(self, a):
-        pass
+        return self._base_ring.divmod(a, self._base_poly)[1] @ self._base_ring
 
     def __latex__(self):
         return fr"\mathbb{{F}}_{self.q}"

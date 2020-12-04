@@ -1,10 +1,9 @@
 import numpy as np
 
-from .domains import EuclideanDomain
-from .rings import UnitaryRing, CommutativeRing
+import structures
 
 
-class IntegerRing(EuclideanDomain):
+class IntegerRing(structures.domains.EuclideanDomain):
     """
     Implementation of the ring of integers IZ := {... -2, -1, 0, 1, 2, ...}.
     """
@@ -97,7 +96,28 @@ class IntegerRing(EuclideanDomain):
         pass
 
     def factor(self, a):
-        pass
+        # Initialization
+        a = a @ self
+        m = int(np.sqrt(a))
+        factors = np.zeros(a, dtype=np.int64)
+        for i in range(1, a, 2):
+            factors[i] = i
+        for i in range(2, a, 2):
+            factors[i] = 2
+
+        for i in range(3, m):
+            if factors[i] == i:
+                for j in range(i * i, a, i):
+                    if factors[j] == j:
+                        factors[j] = i
+
+        # Computation
+        result = []
+        while a != 1:
+            result.append(factors[a])
+            a = a // factors[a]
+
+        return result
 
     def contains(self, a):
         return isinstance(a, (int, np.integer))
@@ -131,7 +151,7 @@ class IntegerRing(EuclideanDomain):
 IZ = IntegerRing()
 
 
-class ModuloIntegers(UnitaryRing, CommutativeRing):
+class ModuloIntegers(structures.rings.UnitaryRing, structures.rings.CommutativeRing):
     """
     Implementation of the ring of integers modulo n IZ_n = IZ/nIZ := {[0], [1], ..., [n-1]}, where
     [a] := {ka : k in IZ}.
