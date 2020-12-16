@@ -1,6 +1,7 @@
 import abc
 
-import structures
+import structures.polynomials
+import structures.rings
 
 
 class Domain(structures.rings.Ring, abc.ABC):
@@ -67,7 +68,7 @@ class UFD(IntegralDomain, structures.rings.UnitaryRing, abc.ABC):
         raise NotImplementedError
 
     def __getitem__(self, var):
-        return structures.polynomials.PolynomialUFD(self, var)
+        return structures.polynomials.PolynomialUFD(type(self), var)
 
 
 class EuclideanDomain(UFD, abc.ABC):

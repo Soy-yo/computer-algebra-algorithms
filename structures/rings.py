@@ -25,6 +25,14 @@ class Ring(abc.ABC):
         return self._dtype
 
     @property
+    def size(self):
+        """
+        Number of elements in this ring.
+        :return: int - number of elements in this ring or -1 if it is infinity
+        """
+        raise NotImplementedError
+
+    @property
     def char(self):
         """
         Property that tells the characteristic of the ring, that is, the minimum integer n such that na = 0 for some
@@ -283,3 +291,6 @@ class DivisionRing(UnitaryRing, abc.ABC):
     def is_unit(self, a):
         # All elements but 0 are units
         return a != self.zero
+
+    def is_zero_divisor(self, a):
+        return False

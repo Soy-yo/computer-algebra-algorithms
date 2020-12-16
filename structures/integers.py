@@ -1,6 +1,6 @@
 import numpy as np
 
-import structures
+import structures.rings
 
 
 class IntegerRing(structures.domains.EuclideanDomain):
@@ -10,6 +10,10 @@ class IntegerRing(structures.domains.EuclideanDomain):
 
     def __init__(self):
         super(IntegerRing, self).__init__(int)
+
+    @property
+    def size(self):
+        return -1
 
     @property
     def char(self):
@@ -165,6 +169,10 @@ class ModuloIntegers(structures.rings.UnitaryRing, structures.rings.CommutativeR
         if n <= 1:
             raise ValueError("n must be a greater than 1 (IZ/IZ = {0}, so it is not an unitary ring)")
         self._modulo = n
+
+    @property
+    def size(self):
+        return self._modulo
 
     @property
     def char(self):

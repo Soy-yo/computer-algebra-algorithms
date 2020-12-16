@@ -3,7 +3,9 @@ from itertools import accumulate
 
 import numpy as np
 
-import structures
+import structures.domains
+import structures.fields
+import structures.integers
 
 
 class Polynomial:
@@ -218,6 +220,7 @@ class Var(Polynomial):
         return self.x
 
 
+# TODO sobreescribir __div__ para poder hacer IZ_p[x]/(f(x))
 class PolynomialUFD(structures.domains.UFD):
 
     def __init__(self, base_ring, var):
@@ -297,6 +300,7 @@ class PolynomialUFD(structures.domains.UFD):
         a = a @ self
         return self.divmod(a, self.mul(self.unit_part(a), self.content(a)))[0]
 
+    # TODO sacar fuera las funciones repetidas
     # Divides a(x) / b(x) and returns it's quotient and remainder
     def divmod(self, a, b):
         """
@@ -349,11 +353,56 @@ class PolynomialUFD(structures.domains.UFD):
         return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
 
 
-# TODO fix MRO :(
-class PolynomialField(PolynomialUFD, structures.fields.Field):
+class PolynomialField(structures.fields.Field):
 
     def __init__(self, base_ring, var):
-        super(PolynomialField, self).__init__(base_ring, var)
+        super(PolynomialField, self).__init__(base_ring)
+        self._base_ring = base_ring
+        self._var = Var(var.x) if isinstance(var, Var) else Var(var)
+
+    @property
+    def zero(self):
+        return self._base_ring.zero
+
+    @property
+    def one(self):
+        return self._base_ring.one
+
+    @property
+    def char(self):
+        return self._base_ring.char
+
+    def add(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a + b
+
+    def mul(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a * b
+
+    def negate(self, a):
+        a = a @ self
+        return -a
+
+    def eq(self, a, b):
+        a = a @ self
+        b = b @ self
+        return a == b
+
+    def is_unit(self, a):
+        pass
+
+    # TODO ???
+    def inverse(self, a):
+        pass
+
+    def is_zero_divisor(self, a):
+        pass
+
+    def contains(self, a):
+        return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
 
     def is_irreducible(self, p):
         def poly(k):
@@ -375,3 +424,81 @@ class PolynomialField(PolynomialUFD, structures.fields.Field):
                     return False
 
             return True
+
+        raise ValueError(f"cannot check irreducibility in {self._base_ring}")
+
+    def is_prime(self, p):
+        return self.is_irreducible(p)
+
+    def factor(self, a):
+        pass
+
+    def normal_part(self, a):
+        a = a @ self
+        u = self.unit_part(a)
+        return self.divmod(a, u)[0]
+
+    def unit_part(self, a):
+        a = a @ self
+        return self._base_ring.unit_part(a.coefficients[-1])
+
+    # GCD de los coeficientes
+    def content(self, a):
+        a @ self
+        return 1
+
+    # a = u(a) * cont(a) * pp(a)
+    def primitive_part(self, a):
+        a = a @ self
+        return self.normal_part(a)
+
+    # Divides a(x) / b(x) and returns it's quotient and remainder
+    def divmod(self, a, b):
+        """
+        :param a:
+        :param b:
+        :return:
+        """
+        a = a @ self
+        b = b @ self
+
+        if a.var != b.var:
+            raise ValueError("variables must be the same")
+
+        quotient, remainder = self.zero, a
+
+        while remainder.degree() >= b.degree:
+            monomial_exponent = remainder.degree() - b.degree
+            monomial_zeros = [self.zero for _ in range(monomial_exponent)]
+            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]], a.var)
+
+            quotient += monomial_divisor
+            remainder -= monomial_divisor * b
+
+        return quotient, remainder
+
+    def gcd(self, a, b, *args):
+        c = self.primitive_part(a)
+        d = self.primitive_part(b)
+
+        while d != self.zero:
+            r = self.divmod(c, d)[1]
+            c = d
+            d = self.primitive_part(r)
+
+        gamma = self._base_ring.gcd(self.content(a), self.content(b))
+        g = self.mul(gamma, c)
+        if args:
+            return self.gcd(g, args[0], *args[1:])
+        return g
+
+    def at(self, a):
+        if a in self._base_ring:
+            return Polynomial([a @ self._base_ring], self._var)
+        if a not in self:
+            raise ValueError("the element must be a polynomial")
+        coeffs = a.coefficients
+        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
+
+    def __latex__(self):
+        return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
