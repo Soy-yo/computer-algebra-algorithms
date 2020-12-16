@@ -1,9 +1,10 @@
 import numpy as np
 
-import structures.rings
+from structures.rings import UnitaryRing, CommutativeRing
+from structures.domains import EuclideanDomain
 
 
-class IntegerRing(structures.domains.EuclideanDomain):
+class IntegerRing(EuclideanDomain):
     """
     Implementation of the ring of integers IZ := {... -2, -1, 0, 1, 2, ...}.
     """
@@ -155,7 +156,7 @@ class IntegerRing(structures.domains.EuclideanDomain):
 IZ = IntegerRing()
 
 
-class ModuloIntegers(structures.rings.UnitaryRing, structures.rings.CommutativeRing):
+class ModuloIntegers(UnitaryRing, CommutativeRing):
     """
     Implementation of the ring of integers modulo n IZ_n = IZ/nIZ := {[0], [1], ..., [n-1]}, where
     [a] := {ka : k in IZ}.

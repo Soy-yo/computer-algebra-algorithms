@@ -1,8 +1,8 @@
-from . import domains
-from . import fields
-from . import integers
-from . import polynomials
-from . import rings
+from .rings import Ring, UnitaryRing, CommutativeRing, DivisionRing
+from .domains import Domain, IntegralDomain, UFD, EuclideanDomain, PolynomialUFD
+from .polynomials import Polynomial, Var
+from .integers import IntegerRing, ModuloIntegers, IZ
+from .fields import Field, FiniteField, PolynomialField, IF
 
 __all__ = [
     'Ring',
