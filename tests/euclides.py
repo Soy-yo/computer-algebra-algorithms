@@ -25,24 +25,26 @@ class IntTest(unittest.TestCase):
     def test_gcd(self):
 
         for a, b, gcd, msg in self.tests:
-            self.assertEqual(IZ.gcd(a, b), gcd, msg)
+            self.assertEqual(gcd, IZ.gcd(a, b), msg)
+
+        self.assertEqual(6, IZ.gcd(60, 36, 18), "three test")
 
         for _ in range(self.random_tests):
             a, b = np.random.randint(self.low, self.high, (2,), dtype=np.int32)
-            self.assertEqual(IZ.gcd(a, b), np.gcd(a, b), "random test")
+            self.assertEqual(np.gcd(a, b), IZ.gcd(a, b), "random test")
 
     def test_bezout(self):
 
         for a, b, gcd, msg in self.tests:
             g, (x, y) = IZ.bezout(a, b)
-            self.assertEqual(g, gcd, "bezout gcd - " + msg)
-            self.assertEqual(a * x + b * y, g, f"bezout {a}*{x} + {b}*{y} == {g} - " + msg)
+            self.assertEqual(gcd, g, "bezout gcd - " + msg)
+            self.assertEqual(g, a * x + b * y, f"bezout {a}*{x} + {b}*{y} == {g} - " + msg)
 
         for _ in range(self.random_tests):
             a, b = np.random.randint(self.low, self.high, (2,), dtype=np.int32)
             g, (x, y) = IZ.bezout(a, b)
-            self.assertEqual(g, np.gcd(a, b), "bezout gcd - random test")
-            self.assertEqual(a * x + b * y, g, f"bezout {a}*{x} + {b}*{y} == {g} - random test")
+            self.assertEqual(np.gcd(a, b), g, "bezout gcd - random test")
+            self.assertEqual(g, a * x + b * y, f"bezout {a}*{x} + {b}*{y} == {g} - random test")
 
 
 if __name__ == '__main__':

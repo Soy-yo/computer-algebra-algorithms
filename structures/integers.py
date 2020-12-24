@@ -1,7 +1,7 @@
 import numpy as np
 
-from structures.rings import UnitaryRing, CommutativeRing
 from structures.domains import EuclideanDomain
+from structures.rings import UnitaryRing, CommutativeRing
 
 
 class IntegerRing(EuclideanDomain):
@@ -125,7 +125,7 @@ class IntegerRing(EuclideanDomain):
         return result
 
     def contains(self, a):
-        return isinstance(a, (int, np.integer))
+        return isinstance(a, (int, np.integer)) or isinstance(a, (float, np.float)) and a.is_integer()
 
     def at(self, a):
         if a in self:

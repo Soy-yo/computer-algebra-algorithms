@@ -17,9 +17,10 @@ class Polynomial:
         :param dtype: type - dtype to pass to numpy array
         """
         self._coefficients = np.trim_zeros(np.array(coefficients, dtype=dtype), trim='b')
-        if self._coefficients.size == 0:
-            self._coefficients = np.array([0], dtype=dtype)
-        self._var = Var(var.x) if isinstance(var, Var) else Var(var)
+        if isinstance(self, Var):
+            self._var = self
+        else:
+            self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
     @property
     def coefficients(self):
@@ -61,7 +62,7 @@ class Polynomial:
         Number of terms in the polynomial.
         :return: int - number of terms in the polynomial
         """
-        return len([0 for t in self._coefficients if t != 0])
+        return sum(1 for t in self._coefficients if t != 0)
 
     def __len__(self):
         return self.terms
@@ -80,10 +81,10 @@ class Polynomial:
 
     def __add__(self, q):
         if not isinstance(q, Polynomial):
-            new_a0 = self._coefficients[0] + q
+            new_a0 = self._coefficients[0] + q if self.degree >= 0 else q
             if new_a0 == NotImplemented:
                 return NotImplemented
-            new_coeff = self.coefficients
+            new_coeff = self._coefficients.copy() if self.degree >= 0 else [0]
             new_coeff[0] = new_a0
             return Polynomial(new_coeff, self._var.x)
 
@@ -97,10 +98,10 @@ class Polynomial:
         return Polynomial(coeff_p + coeff_q, self._var.x)
 
     def __radd__(self, q):
-        new_a0 = q + self._coefficients[0]
+        new_a0 = q + self._coefficients[0] if self.degree >= 0 else q
         if new_a0 == NotImplemented:
             return NotImplemented
-        new_coeff = self.coefficients
+        new_coeff = self._coefficients.copy() if self.degree >= 0 else [0]
         new_coeff[0] = new_a0
         return Polynomial(new_coeff, self._var.x)
 
@@ -111,10 +112,10 @@ class Polynomial:
         return self + (-q)
 
     def __rsub__(self, q):
-        new_a0 = q - self._coefficients[0]
+        new_a0 = q - self._coefficients[0] if self.degree >= 0 else q
         if new_a0 == NotImplemented:
             return NotImplemented
-        new_coeff = -self.coefficients
+        new_coeff = -self._coefficients.copy() if self.degree >= 0 else [0]
         new_coeff[0] = new_a0
         return Polynomial(new_coeff, self._var.x)
 
@@ -122,11 +123,14 @@ class Polynomial:
     def __mul__(self, q):
         if not isinstance(q, Polynomial):
             new_coeff = self._coefficients * q
-            if new_coeff[0] == NotImplemented:
+            if len(new_coeff) > 0 and new_coeff[0] == NotImplemented:
                 return NotImplemented
             return Polynomial(new_coeff, self._var.x)
 
         self._check_var(q.var)
+        if len(self._coefficients) == 0:
+            return Polynomial([], self._var.x)
+
         result = np.zeros(self.degree + q.degree + 1)
         for i in range(self.degree + 1):
             for j in range(q.degree + 1):
@@ -135,7 +139,7 @@ class Polynomial:
 
     def __rmul__(self, q):
         new_coeff = q * self._coefficients
-        if new_coeff[0] == NotImplemented:
+        if len(new_coeff) > 0 and new_coeff[0] == NotImplemented:
             return NotImplemented
         return Polynomial(new_coeff, self._var.x)
 
@@ -143,20 +147,19 @@ class Polynomial:
         if n <= 0:
             return NotImplemented
         if n == 1:
-            return self
+            return Polynomial(self.coefficients, self._var.x)
         return reduce(lambda x, y: x * y, (self for _ in range(n)))
-
-    def __xor__(self, n):
-        return self.__pow__(n)
 
     def __eq__(self, q):
         if not isinstance(q, Polynomial):
             if self.degree > 0:
                 return False
-            return self._coefficients[0] == q
-        return self._var == q.var and (self._coefficients == q.coefficients).all()
+            return len(self._coefficients) == 0 and q == 0 or self._coefficients[0] == q
+        return self._var == q.var and self.degree == q.degree and (self._coefficients == q.coefficients).all()
 
     def __call__(self, x):
+        if len(self._coefficients) == 0:
+            return 0
         xs = np.array(list(accumulate([1] + [x] * self.degree, lambda a, b: a * b)))
         return (self._coefficients * xs).sum()
 
@@ -175,6 +178,8 @@ class Polynomial:
 
     # TODO add parentheses if a_i has length and len(a_i) > 1
     def __latex__(self):
+        if len(self._coefficients) == 0:
+            return '0'
         latex = getattr(self._coefficients, "__latex__", None)
         return '+'.join([
             ((latex(c) if latex is not None else str(c)) if c != 1 or k == 0 else '') +
@@ -188,6 +193,8 @@ class Polynomial:
         return f"${self.__latex__()}$"
 
     def __repr__(self):
+        if len(self._coefficients) == 0:
+            return '0'
         return ' + '.join([
             (str(c) if c != 1 or k == 0 else '') +
             (str(self._var) if k != 0 else '') +
@@ -205,9 +212,16 @@ class Var(Polynomial):
     >>> f = x**2 + 2*x + 1 # returns the polynomial with coefficients [1, 2, 1]
     """
 
+    x = None
+
     def __init__(self, x, dtype=None):
         super().__init__([0, 1], self, dtype)
         self.x = x
+
+    def __eq__(self, other):
+        if not isinstance(other, Var):
+            return False
+        return self.x == other.x
 
     def __latex__(self):
         return self.x

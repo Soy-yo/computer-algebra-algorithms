@@ -4,8 +4,8 @@ import numpy as np
 
 from structures.domains import Domain
 from structures.integers import IZ, ModuloIntegers
-from structures.rings import DivisionRing, CommutativeRing
 from structures.polynomials import Var, Polynomial
+from structures.rings import DivisionRing, CommutativeRing
 
 
 class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):
@@ -14,7 +14,7 @@ class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):
     """
 
     def __getitem__(self, var):
-        return PolynomialField(type(self), var)
+        return PolynomialField(self, var)
 
 
 class FiniteField(Field):
@@ -24,8 +24,9 @@ class FiniteField(Field):
         super(FiniteField, self).__init__(Polynomial)
         if n <= 0:
             raise ValueError("n must be positive")
-        if not IZ.is_prime(p):
-            raise ValueError("p must be prime")
+        # TODO uncomment
+        # if not IZ.is_prime(p):
+        #     raise ValueError("p must be prime")
         if base_poly is not None:
             self._base_ring = ModuloIntegers(p)[base_poly.var]
         elif n == 1:
@@ -141,7 +142,7 @@ IF = FiniteField
 class PolynomialField(Field):
 
     def __init__(self, base_ring, var):
-        super(PolynomialField, self).__init__(base_ring)
+        super(PolynomialField, self).__init__(Polynomial)
         self._base_ring = base_ring
         self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
@@ -225,6 +226,8 @@ class PolynomialField(Field):
 
     def unit_part(self, a):
         a = a @ self
+        if a == self.zero:
+            return self.one
         return self._base_ring.unit_part(a.coefficients[-1])
 
     # GCD de los coeficientes
@@ -240,9 +243,7 @@ class PolynomialField(Field):
     # Divides a(x) / b(x) and returns it's quotient and remainder
     def divmod(self, a, b):
         """
-        :param a:
-        :param b:
-        :return:
+        TODO
         """
         a = a @ self
         b = b @ self
@@ -252,13 +253,15 @@ class PolynomialField(Field):
 
         quotient, remainder = self.zero, a
 
-        while remainder.degree() >= b.degree:
-            monomial_exponent = remainder.degree() - b.degree
+        while remainder.degree >= b.degree:
+            monomial_exponent = remainder.degree - b.degree
             monomial_zeros = [self.zero for _ in range(monomial_exponent)]
-            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]], a.var)
+            monomial_divisor = Polynomial(monomial_zeros +
+                                          [self._base_ring.div(remainder.coefficients[-1], b.coefficients[-1])],
+                                          a.var)
 
-            quotient += monomial_divisor
-            remainder -= monomial_divisor * b
+            quotient = self.add(quotient, monomial_divisor)
+            remainder = self.sub(remainder, self.mul(monomial_divisor, b))
 
         return quotient, remainder
 

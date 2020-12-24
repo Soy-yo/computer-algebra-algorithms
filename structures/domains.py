@@ -1,7 +1,7 @@
 import abc
 
-from structures.rings import Ring, CommutativeRing, UnitaryRing
 from structures.polynomials import Polynomial, Var
+from structures.rings import Ring, CommutativeRing, UnitaryRing
 
 
 class Domain(Ring, abc.ABC):
@@ -68,7 +68,7 @@ class UFD(IntegralDomain, UnitaryRing, abc.ABC):
         raise NotImplementedError
 
     def __getitem__(self, var):
-        return PolynomialUFD(type(self), var)
+        return PolynomialUFD(self, var)
 
 
 class EuclideanDomain(UFD, abc.ABC):
@@ -235,9 +235,6 @@ class PolynomialUFD(UFD):
     def is_zero_divisor(self, a):
         pass
 
-    def contains(self, a):
-        return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
-
     def is_irreducible(self, p):
         pass
 
@@ -250,29 +247,31 @@ class PolynomialUFD(UFD):
     def normal_part(self, a):
         a = a @ self
         u = self.unit_part(a)
-        return self.divmod(a, u)[0]
+        return self.divmod(a, u, pseudo=False)[0]
 
     def unit_part(self, a):
         a = a @ self
+        if a == self.zero:
+            return self.one
         return self._base_ring.unit_part(a.coefficients[-1])
 
-    # GCD de los coeficientes
     def content(self, a):
         a = a @ self
+        if a.degree < 1:
+            return a.coefficients[0] if a.degree == 0 else 0
         return self._base_ring.gcd(*a.coefficients)
 
-    # a = u(a) * cont(a) * pp(a)
+    # GCD de los coeficientes
     def primitive_part(self, a):
         a = a @ self
-        return self.divmod(a, self.mul(self.unit_part(a), self.content(a)))[0]
+        if a == self.zero:
+            return self.zero
+        return self.divmod(a, self.mul(self.unit_part(a), self.content(a)), pseudo=False)[0]
 
-    # TODO sacar fuera las funciones repetidas
-    # Divides a(x) / b(x) and returns it's quotient and remainder
-    def divmod(self, a, b):
+    # a = u(a) * cont(a) * pp(a)
+    def divmod(self, a, b, pseudo=True):
         """
-        :param a:
-        :param b:
-        :return:
+        TODO
         """
         a = a @ self
         b = b @ self
@@ -280,18 +279,33 @@ class PolynomialUFD(UFD):
         if a.var != b.var:
             raise ValueError("variables must be the same")
 
+        if b == self.zero:
+            raise ZeroDivisionError
+
+        if a.degree < b.degree:
+            return self.zero, a
+
+        if pseudo:
+            beta = b.coefficients[-1]
+            ell = a.degree - b.degree + 1
+            a = self.mul(a, beta ** ell)
+
         quotient, remainder = self.zero, a
 
-        while remainder.degree() >= b.degree:
-            monomial_exponent = remainder.degree() - b.degree
+        while remainder.degree >= b.degree:
+            monomial_exponent = remainder.degree - b.degree
             monomial_zeros = [self.zero for _ in range(monomial_exponent)]
-            monomial_divisor = Polynomial(monomial_zeros + [remainder.coefficients[-1] / b.coefficients[-1]], a.var)
+            monomial_divisor = Polynomial(monomial_zeros +
+                                          [self._base_ring.quot(remainder.coefficients[-1], b.coefficients[-1])],
+                                          a.var)
 
-            quotient += monomial_divisor
-            remainder -= monomial_divisor * b
+            quotient = self.add(quotient, monomial_divisor)
+            remainder = self.sub(remainder, self.mul(monomial_divisor, b))
 
         return quotient, remainder
 
+    # TODO sacar fuera las funciones repetidas
+    # Divides a(x) / b(x) and returns it's quotient and remainder
     def gcd(self, a, b, *args):
         c = self.primitive_part(a)
         d = self.primitive_part(b)
@@ -306,6 +320,9 @@ class PolynomialUFD(UFD):
         if args:
             return self.gcd(g, args[0], *args[1:])
         return g
+
+    def contains(self, a):
+        return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
 
     def at(self, a):
         if a in self._base_ring:
