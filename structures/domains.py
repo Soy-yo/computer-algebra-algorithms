@@ -96,7 +96,7 @@ class EuclideanDomain(UFD, abc.ABC):
         :param b: self.dtype - divisor
         :return: self.dtype - quotient of the division
         """
-        return self.full_div(a, b)[0]
+        return self.divmod(a, b)[0]
 
     def rem(self, a, b):
         """
@@ -105,9 +105,9 @@ class EuclideanDomain(UFD, abc.ABC):
         :param b: self.dtype - divisor
         :return: self.dtype - remainder of the division
         """
-        return self.full_div(a, b)[1]
+        return self.divmod(a, b)[1]
 
-    def full_div(self, a, b):
+    def divmod(self, a, b):
         """
         Returns both the quotient q and the remainder r of the division a = b * q + r.
         :param a: self.dtype - dividend
@@ -168,7 +168,7 @@ class EuclideanDomain(UFD, abc.ABC):
         x1 = self.zero
         y1 = self.one
         while r1 != self.zero:
-            (q, r2) = self.full_div(r0, r1)
+            (q, r2) = self.divmod(r0, r1)
             x2 = self.sub(x0, self.mul(q, x1))
             y2 = self.sub(y0, self.mul(q, y1))
             (x0, x1, y0, y1, r0, r1) = (x1, x2, y1, y2, r1, r2)

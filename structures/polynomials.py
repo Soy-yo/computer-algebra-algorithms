@@ -131,7 +131,7 @@ class Polynomial:
         if len(self._coefficients) == 0:
             return Polynomial([], self._var.x)
 
-        result = np.zeros(self.degree + q.degree + 1)
+        result = np.zeros(self.degree + q.degree + 1, dtype=self._coefficients.dtype)
         for i in range(self.degree + 1):
             for j in range(q.degree + 1):
                 result[i + j] += self._coefficients[i] * q._coefficients[j]
@@ -155,6 +155,8 @@ class Polynomial:
             if self.degree > 0:
                 return False
             return len(self._coefficients) == 0 and q == 0 or self._coefficients[0] == q
+        if self.degree <= 0:
+            return self.degree == q.degree and (self._coefficients == q.coefficients).all()
         return self._var == q.var and self.degree == q.degree and (self._coefficients == q.coefficients).all()
 
     def __call__(self, x):

@@ -20,22 +20,20 @@ class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):
 class FiniteField(Field):
 
     # TODO comprobar irreduciblidad o generar alguno si hace falta
-    def __init__(self, p, n=1, base_poly=None):
+    def __init__(self, p, base_poly=None):
         super(FiniteField, self).__init__(Polynomial)
-        if n <= 0:
-            raise ValueError("n must be positive")
         # TODO uncomment
         # if not IZ.is_prime(p):
         #     raise ValueError("p must be prime")
-        if base_poly is not None:
-            self._base_ring = ModuloIntegers(p)[base_poly.var]
-        elif n == 1:
-            self._base_ring = ModuloIntegers(p)['']
+        if base_poly is None:
+            self._base_ring = ModuloIntegers(p)
         else:
-            raise ValueError("a modulo polynomial must be specified for IF(p, n>1)")
+            self._base_ring = FiniteField(p)[base_poly.var]
+            if not self._base_ring.is_irreducible(base_poly):
+                raise ValueError(f"the polynomial must be irreducible in F({p})")
         self._p = p
-        self._n = n
-        self._base_poly = base_poly if base_poly is not None else Polynomial([0, 1], '')
+        self._n = base_poly.degree if base_poly is not None else 1
+        self._base_poly = base_poly if self._n != 1 else p
 
     @property
     def p(self):
@@ -59,11 +57,11 @@ class FiniteField(Field):
 
     @property
     def zero(self):
-        return Polynomial([0], self._base_ring.var, dtype=int)
+        return Polynomial([0], self._base_ring.var, dtype=int) if self._n != 1 else 0
 
     @property
     def one(self):
-        return Polynomial([1], self._base_ring.var, dtype=int)
+        return Polynomial([1], self._base_ring.var, dtype=int) if self._n != 1 else 1
 
     def add(self, a, b):
         a = a @ self
@@ -80,11 +78,13 @@ class FiniteField(Field):
         return (a * b) @ self
 
     def inverse(self, a):
+        if self._n == 1:
+            return self._base_ring.inverse(a)
         # a(t)x + q(t)y = 1 => a(t)x - 1 = (-y)q(t) => a(t)x ≡ 1 mod q(t)
-        a_ = a @ self
-        gcd, (x, _) = self._base_ring.bezout(a_, self._base_poly)
-        if gcd != 1:
-            raise ValueError(f"only units have inverse, but {a} is not an unit")
+        a = a @ self
+        if a == self.zero:
+            raise ZeroDivisionError
+        gcd, (x, _) = self._base_ring.bezout(a, self._base_poly)
         return x @ self
 
     def discrete_logarithm(self, h, g):
@@ -127,10 +127,12 @@ class FiniteField(Field):
         return a == b
 
     def contains(self, a):
-        return isinstance(a, (Polynomial, int, np.integer))
+        if isinstance(a, Polynomial) and isinstance(self._base_poly, Polynomial):
+            return a.var == self._base_poly.var
+        return isinstance(a, (int, np.integer)) or isinstance(a, (float, np.float)) and a.is_integer()
 
     def at(self, a):
-        return self._base_ring.divmod(a, self._base_poly)[1] @ self._base_ring
+        return self._base_ring.divmod(a, self._base_poly)[1] @ self._base_ring if self._n != 1 else a @ self._base_ring
 
     def __latex__(self):
         return fr"\mathbb{{F}}_{self.q}"
@@ -145,6 +147,10 @@ class PolynomialField(Field):
         super(PolynomialField, self).__init__(Polynomial)
         self._base_ring = base_ring
         self._var = Var(var.x) if isinstance(var, Var) else Var(var)
+
+    @property
+    def var(self):
+        return self._var
 
     @property
     def zero(self):
@@ -198,7 +204,7 @@ class PolynomialField(Field):
             return Polynomial(coeffs, self._var)
 
         p = p @ self
-        if isinstance(self._base_ring, IF):
+        if isinstance(self._base_ring, FiniteField):
             n = self._base_ring.n
             q = self._base_ring.q
             if self.divmod(poly(q), p)[1] != 0:
@@ -221,19 +227,21 @@ class PolynomialField(Field):
 
     def normal_part(self, a):
         a = a @ self
-        u = self.unit_part(a)
-        return self.divmod(a, u)[0]
+        if a == self.zero:
+            return a
+        lcoeff = a.coefficients[-1]
+        return Polynomial([self._base_ring.div(ai, lcoeff) for ai in a.coefficients], self._var.x)
 
     def unit_part(self, a):
         a = a @ self
         if a == self.zero:
             return self.one
-        return self._base_ring.unit_part(a.coefficients[-1])
+        return a.coefficients[-1]
 
     # GCD de los coeficientes
     def content(self, a):
         a @ self
-        return 1
+        return self._base_ring.one
 
     # a = u(a) * cont(a) * pp(a)
     def primitive_part(self, a):
@@ -274,11 +282,34 @@ class PolynomialField(Field):
             c = d
             d = self.primitive_part(r)
 
-        gamma = self._base_ring.gcd(self.content(a), self.content(b))
-        g = self.mul(gamma, c)
+        g = c
         if args:
             return self.gcd(g, args[0], *args[1:])
         return g
+
+    def bezout(self, a, b):
+        """
+        Returns two elements that satisfy Bezout's identity, that is, two elements x and y for which
+        gcd(a, b) = a * x + b * y. It also returns the gcd of a and b.
+        :param a: Polynomial - left-hand-side element
+        :param b: Polynomial - right-hand-side element
+        :return: (Polynomial, (Polynomial, Polynomial)) - gcd(a, b) and the two elements that satisfy Bezout's identity
+        """
+        r0 = self.normal_part(a)
+        r1 = self.normal_part(b)
+
+        x0 = self.one
+        y0 = self.zero
+        x1 = self.zero
+        y1 = self.one
+        while r1 != self.zero:
+            (q, r2) = self.divmod(r0, r1)
+            x2 = self.sub(x0, self.mul(q, x1))
+            y2 = self.sub(y0, self.mul(q, y1))
+            (x0, x1, y0, y1, r0, r1) = (x1, x2, y1, y2, r1, r2)
+        x0 = self.divmod(x0, self.mul(self.unit_part(a), self.unit_part(r0)))[0]
+        y0 = self.divmod(y0, self.mul(self.unit_part(b), self.unit_part(r0)))[0]
+        return self.normal_part(r0), (x0, y0)
 
     def at(self, a):
         if a in self._base_ring:

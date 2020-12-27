@@ -43,7 +43,7 @@ class IntegerRing(EuclideanDomain):
         b = b @ self
         return a * b
 
-    def full_div(self, a, b):
+    def divmod(self, a, b):
         # TODO check // and % do what we want (specially for negative integers)
         a = a @ self
         b = b @ self
@@ -233,7 +233,7 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
         return not self.is_unit(a)
 
     def contains(self, a):
-        return isinstance(a, (int, np.integer))
+        return isinstance(a, (int, np.integer)) or isinstance(a, (float, np.float)) and a.is_integer()
 
     def at(self, a):
         if a in self:

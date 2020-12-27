@@ -19,6 +19,11 @@ class GCDTest(unittest.TestCase):
         q = gcd * (7 * x ** 5 + x ** 2 + 3 * x)
         self.assertEqual(gcd, ufd.gcd(p, q), "medium test")
 
+        gcd = 4 * x - 6
+        p = 48 * x ** 3 - 84 * x ** 2 + 42 * x - 36
+        q = -4 * x ** 3 - 10 * x ** 2 + 44 * x - 30
+        self.assertEqual(gcd, ufd.gcd(p, q), "hard test")
+
         p = 3 * (x + 1) * (x - 2) * (x + 5) * (x - 11)
         q = 5 * (x + 3) * (x - 7) * x
         self.assertEqual(-1, ufd.gcd(p, q), "coprime test")
@@ -33,12 +38,13 @@ class GCDTest(unittest.TestCase):
         self.assertEqual(4 * a, ufd.gcd(p, q), "same base test")
 
     def test_field(self):
+        # TODO test with Q
         t = Var('t')
 
         field = IF(7)[t]
 
-        p = x ** 2 + 2 * x + 1
-        q = x + 1
+        p = t ** 2 + 2 * t + 1
+        q = t + 1
         self.assertEqual(q, field.gcd(p, q), "easy test")
 
 
