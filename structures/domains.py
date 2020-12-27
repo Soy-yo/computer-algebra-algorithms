@@ -330,7 +330,7 @@ class PolynomialUFD(UFD):
         if a not in self:
             raise ValueError("the element must be a polynomial")
         coeffs = a.coefficients
-        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
+        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var)
 
     def __latex__(self):
         return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"

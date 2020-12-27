@@ -10,13 +10,12 @@ class Polynomial:
     represent its coefficients.
     """
 
-    def __init__(self, coefficients, var, dtype=None):
+    def __init__(self, coefficients, var):
         """
         :param coefficients: [any] - coefficients of the polynomial, starting with a0
         :param var: Var/str - variable of the polynomial
-        :param dtype: type - dtype to pass to numpy array
         """
-        self._coefficients = np.trim_zeros(np.array(coefficients, dtype=dtype), trim='b')
+        self._coefficients = Coefficients(coefficients)
         if isinstance(self, Var):
             self._var = self
         else:
@@ -28,9 +27,7 @@ class Polynomial:
         Read-only view of the coefficients.
         :return: np.array - read-only view of the coefficients
         """
-        coeff = self._coefficients.view()
-        coeff.flags.writeable = False
-        return coeff
+        return self._coefficients.copy()
 
     @property
     def var(self):
@@ -75,35 +72,24 @@ class Polynomial:
         """
         if n > self.degree:
             raise ValueError(f"{self} has degree lower than {n}")
-        coeffs = self._coefficients.copy()[:n]
-        coeffs[:n - 1] = 0
-        return Polynomial(coeffs, self._var.x, self._coefficients.dtype)
+        coeffs = [0] * (n + 1)
+        coeffs[n] = self._coefficients[n]
+        return Polynomial(coeffs, self._var.x)
 
     def __add__(self, q):
         if not isinstance(q, Polynomial):
-            new_a0 = self._coefficients[0] + q if self.degree >= 0 else q
-            if new_a0 == NotImplemented:
-                return NotImplemented
-            new_coeff = self._coefficients.copy() if self.degree >= 0 else [0]
-            new_coeff[0] = new_a0
-            return Polynomial(new_coeff, self._var.x)
+            return Polynomial(self._coefficients + q, self._var.x)
+        elif q.var != self._var:
+            if self.degree < 1:
+                # n(x) + p(y) = p(y) + n
+                return Polynomial(self._coefficients + q.coefficients, q.var.x)
 
-        self._check_var(q.var)
-        coeff_p = self._coefficients
-        coeff_q = q._coefficients
-        if self.degree > q.degree:
-            coeff_q = np.pad(coeff_q, (0, self.degree - q.degree))
-        elif q.degree > self.degree:
-            coeff_p = np.pad(coeff_p, (0, q.degree - self.degree))
-        return Polynomial(coeff_p + coeff_q, self._var.x)
+            return Polynomial(self._coefficients + q, self._var.x)
+
+        return Polynomial(self._coefficients + q._coefficients, self._var.x)
 
     def __radd__(self, q):
-        new_a0 = q + self._coefficients[0] if self.degree >= 0 else q
-        if new_a0 == NotImplemented:
-            return NotImplemented
-        new_coeff = self._coefficients.copy() if self.degree >= 0 else [0]
-        new_coeff[0] = new_a0
-        return Polynomial(new_coeff, self._var.x)
+        return Polynomial(q + self._coefficients, self._var.x)
 
     def __neg__(self):
         return Polynomial(-self._coefficients, self._var.x)
@@ -112,40 +98,27 @@ class Polynomial:
         return self + (-q)
 
     def __rsub__(self, q):
-        new_a0 = q - self._coefficients[0] if self.degree >= 0 else q
-        if new_a0 == NotImplemented:
-            return NotImplemented
-        new_coeff = -self._coefficients.copy() if self.degree >= 0 else [0]
-        new_coeff[0] = new_a0
-        return Polynomial(new_coeff, self._var.x)
+        return q + (-self)
 
-    # TODO: averiguar cómo no sacar floats
     def __mul__(self, q):
         if not isinstance(q, Polynomial):
-            new_coeff = self._coefficients * q
-            if len(new_coeff) > 0 and new_coeff[0] == NotImplemented:
-                return NotImplemented
-            return Polynomial(new_coeff, self._var.x)
+            return Polynomial(self._coefficients * q, self._var)
+        elif q.var != self._var:
+            if self.degree < 1:
+                # n(x) * p(y) = n * p(y)
+                return Polynomial(self._coefficients * q._coefficients, q.var.x)
+            return Polynomial(self._coefficients * q, self._var.x)
 
-        self._check_var(q.var)
-        if len(self._coefficients) == 0:
-            return Polynomial([], self._var.x)
-
-        result = np.zeros(self.degree + q.degree + 1, dtype=self._coefficients.dtype)
-        for i in range(self.degree + 1):
-            for j in range(q.degree + 1):
-                result[i + j] += self._coefficients[i] * q._coefficients[j]
-        return Polynomial(result, self._var.x)
+        return Polynomial(self._coefficients * q._coefficients, self._var.x)
 
     def __rmul__(self, q):
-        new_coeff = q * self._coefficients
-        if len(new_coeff) > 0 and new_coeff[0] == NotImplemented:
-            return NotImplemented
-        return Polynomial(new_coeff, self._var.x)
+        return Polynomial(q * self._coefficients, self._var.x)
 
     def __pow__(self, n):
-        if n <= 0:
-            return NotImplemented
+        if n < 0:
+            raise ValueError("exponent must be positive or zero")
+        if n == 0:
+            return Polynomial([1], self._var.x)
         if n == 1:
             return Polynomial(self.coefficients, self._var.x)
         return reduce(lambda x, y: x * y, (self for _ in range(n)))
@@ -156,14 +129,14 @@ class Polynomial:
                 return False
             return len(self._coefficients) == 0 and q == 0 or self._coefficients[0] == q
         if self.degree <= 0:
-            return self.degree == q.degree and (self._coefficients == q.coefficients).all()
-        return self._var == q.var and self.degree == q.degree and (self._coefficients == q.coefficients).all()
+            return self.degree == q.degree and self._coefficients == q.coefficients
+        return self._var == q.var and self.degree == q.degree and self._coefficients == q.coefficients
 
     def __call__(self, x):
-        if len(self._coefficients) == 0:
+        if not self._coefficients:
             return 0
-        xs = np.array(list(accumulate([1] + [x] * self.degree, lambda a, b: a * b)))
-        return (self._coefficients * xs).sum()
+        xs = accumulate([1] + [x] * self.degree, lambda a, b: a * b)
+        return sum(a * x for a, x in zip(self._coefficients, xs))
 
     def derivative(self):
         """
@@ -172,37 +145,43 @@ class Polynomial:
         :return: Polynomial - the derivative of this polynomial
         """
         coeffs = [i * c for (i, c) in enumerate(self._coefficients)]
-        return Polynomial(coeffs[1:], self._var.x, self._coefficients.dtype)
+        return Polynomial(coeffs[1:], self._var.x)
 
-    def _check_var(self, var):
-        if self._var != var:
-            raise ValueError(f"cannot operate with different variables: {self._var} and {var} found")
+    def _repr_coefficient(self, c, k, r):
+        if c == 1 and k != 0:
+            return ''
+        if c == -1 and k != 0:
+            return '-'
+        if hasattr(c, '__len__') and len(c) > 1:
+            return '(' + r(c) + ')'
+        return r(c)
 
-    # TODO add parentheses if a_i has length and len(a_i) > 1
+    def _repr_var(self, k, latex):
+        if k == 0:
+            return ''
+        result = f'{self._var.__latex__()}' if latex else repr(self._var)
+        if k == 1:
+            return result
+        return result + (f'^{{{k}}}' if latex else f'^{k}')
+
     def __latex__(self):
-        if len(self._coefficients) == 0:
+        if self.degree == -1:
             return '0'
-        latex = getattr(self._coefficients, "__latex__", None)
+        latex = getattr(self._coefficients, "__latex__", repr)
         return '+'.join([
-            ((latex(c) if latex is not None else str(c)) if c != 1 or k == 0 else '') +
-            (f'{self._var.__latex__()}' if k != 0 else '') +
-            (f'^{{{k}}}' if k not in (0, 1) else '')
-            for k, c in reversed(list(enumerate(self._coefficients)))
-            if c != 0
+            self._repr_coefficient(c, k, latex) + self._repr_var(k, latex=True)
+            for k, c in reversed(list(enumerate(self._coefficients))) if c != 0
         ]).replace('+-', '-')
 
     def _repr_latex_(self):
         return f"${self.__latex__()}$"
 
     def __repr__(self):
-        if len(self._coefficients) == 0:
+        if self.degree == -1:
             return '0'
         return ' + '.join([
-            (str(c) if c != 1 or k == 0 else '') +
-            (str(self._var) if k != 0 else '') +
-            (f'^{k}' if k not in (0, 1) else '')
-            for k, c in reversed(list(enumerate(self._coefficients)))
-            if c != 0
+            self._repr_coefficient(c, k, repr) + self._repr_var(k, latex=False)
+            for k, c in reversed(list(enumerate(self._coefficients))) if c != 0
         ]).replace('+ -', '- ')
 
 
@@ -216,8 +195,8 @@ class Var(Polynomial):
 
     x = None
 
-    def __init__(self, x, dtype=None):
-        super().__init__([0, 1], self, dtype)
+    def __init__(self, x):
+        super().__init__([0, 1], self)
         self.x = x
 
     def __eq__(self, other):
@@ -230,3 +209,99 @@ class Var(Polynomial):
 
     def __repr__(self):
         return self.x
+
+
+class Coefficients:
+
+    def __init__(self, a=None):
+        if a is None:
+            a = []
+        self._a = [c for c in a]
+        self.trim()
+
+    def __len__(self):
+        return len(self._a)
+
+    def __getitem__(self, item):
+        if isinstance(item, (int, np.integer)):
+            return self._a[item]
+        if isinstance(item, slice):
+            return Coefficients(self._a[item])
+
+        return NotImplemented
+
+    def __setitem__(self, key, value):
+        if isinstance(key, (int, np.integer)):
+            self._[key] = value
+        elif isinstance(key, slice):
+            for i, v in zip(range(key.start, key.stop, key.step), value):
+                self._a[i] = v
+        else:
+            raise ValueError(f"undefined set method for type {type(key)}")
+
+    def __neg__(self):
+        return Coefficients([-x for x in self._a])
+
+    def __add__(self, other):
+        if not isinstance(other, Coefficients):
+            return Coefficients([self._a[0] + other if self else other] + self._a[1:])
+
+        a = self._a
+        b = other._a
+        if len(other) > len(self):
+            a = a + [None] * (len(other) - len(self))
+        elif len(self) > len(other):
+            b = b + [None] * (len(self) - len(other))
+
+        return Coefficients([ai + bi if ai is not None and bi is not None
+                             else ai if ai is not None
+        else bi for ai, bi in zip(a, b)])
+
+    def __radd__(self, other):
+        # isinstance(other, Coefficients) must be False
+        return Coefficients([(other + self._a[0]) if self else other] + self._a[1:])
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __rsub__(self, other):
+        return other + (-self)
+
+    def __mul__(self, other):
+        if not isinstance(other, Coefficients):
+            return Coefficients([x * other for x in self._a])
+
+        if not self or not other:
+            return Coefficients([])
+
+        a = [0] * (len(self) + len(other) - 1)
+        for i in range(len(self)):
+            for j in range(len(other)):
+                a[i + j] += self[i] * other[j]
+
+        return Coefficients(a)
+
+    def __rmul__(self, other):
+        # isinstance(other, Coefficients) must be False
+        return Coefficients([other * x for x in self._a])
+
+    def __eq__(self, other):
+        if not isinstance(other, Coefficients):
+            return False
+        return self._a == other._a
+
+    def __bool__(self):
+        return len(self) > 0
+
+    def __repr__(self):
+        return "Coefficients(" + repr(self._a) + ")"
+
+    def __copy__(self):
+        return self.copy()
+
+    def copy(self):
+        return Coefficients(self._a)
+
+    def trim(self):
+        while self._a and self._a[-1] == 0:
+            self._a.pop()

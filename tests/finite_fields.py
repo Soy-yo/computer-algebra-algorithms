@@ -35,7 +35,7 @@ class FiniteFieldsTest(unittest.TestCase):
         # self.assertTrue(field.is_irreducible(t ** 8 + t ** 4 + t ** 3 + t + 1), "easy test True")
 
         field = IF(7)[t]
-        self.assertFalse(field.is_irreducible((t + 1) ** 7), "easy test False")
+        self.assertFalse(field.is_irreducible(t ** 7 + 1), "easy test False")
 
         field = IF(5, x ** 2 + 1)[t]
         self.assertTrue(field.is_irreducible(t ** 4 + t ** 3 + t ** 2 + t + 1), "medium test True")

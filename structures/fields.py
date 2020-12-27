@@ -29,8 +29,9 @@ class FiniteField(Field):
             self._base_ring = ModuloIntegers(p)
         else:
             self._base_ring = FiniteField(p)[base_poly.var]
-            if not self._base_ring.is_irreducible(base_poly):
-                raise ValueError(f"the polynomial must be irreducible in F({p})")
+            # TODO uncomment
+            # if not self._base_ring.is_irreducible(base_poly):
+            #     raise ValueError(f"the polynomial must be irreducible in F({p})")
         self._p = p
         self._n = base_poly.degree if base_poly is not None else 1
         self._base_poly = base_poly if self._n != 1 else p
@@ -57,11 +58,11 @@ class FiniteField(Field):
 
     @property
     def zero(self):
-        return Polynomial([0], self._base_ring.var, dtype=int) if self._n != 1 else 0
+        return Polynomial([0], self._base_ring.var) if self._n != 1 else 0
 
     @property
     def one(self):
-        return Polynomial([1], self._base_ring.var, dtype=int) if self._n != 1 else 1
+        return Polynomial([1], self._base_ring.var) if self._n != 1 else 1
 
     def add(self, a, b):
         a = a @ self
@@ -317,7 +318,7 @@ class PolynomialField(Field):
         if a not in self:
             raise ValueError("the element must be a polynomial")
         coeffs = a.coefficients
-        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var, coeffs.dtype)
+        return Polynomial([ai @ self._base_ring for ai in coeffs], self._var)
 
     def __latex__(self):
         return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"
