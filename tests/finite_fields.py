@@ -59,7 +59,7 @@ class FiniteFieldsTest(unittest.TestCase):
         mods = [17, 19, 23, 37, 97, 773]
         for p in mods:
             field = IF(p)
-            for x in range(1, p):
+            for x in range(2, p):
                 for _ in range(10):
                     n = random.randrange(1, p)
                     a = pow(x, n, mod=p)

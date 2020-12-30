@@ -104,7 +104,7 @@ class FiniteField(Field):
         def f(x, a, b):
             return (self.mul(h, x), a, Zn.add(b, Zn.one)) if s1(x) else \
                 (self.pow(x, 2), Zn.times(a, 2), Zn.times(b, 2)) if s2(x) else \
-                    (self.mul(g, x), Zn.add(a, Zn.one), b)
+                (self.mul(g, x), Zn.add(a, Zn.one), b)
 
         h = h @ self
         g = g @ self
@@ -119,22 +119,19 @@ class FiniteField(Field):
         # s1, s2 = get_s(chi, 0), get_s(chi, 1)
         s1, s2 = get_s(1), get_s(0)
         x, a, b = self.one, Zn.zero, Zn.zero
-        xs = [x, x]
-        as_ = [a, a]
-        bs = [b, b]
+        x_, a_, b_ = x, a, b
         while True:
             # it k -> x_k = g^{a_k} * h^{b_k}
-            xs[0], as_[0], bs[0] = f(xs[0], as_[0], bs[0])
-            x, a, b = f(xs[1], as_[1], bs[1])
-            xs[1], as_[1], bs[1] = f(x, a, b)
+            x, a, b = f(x, a, b)
+            x_, a_, b_ = f(*f(x_, a_, b_))
 
             # x_k == x_{2k}
-            if xs[0] == xs[1]:
-                if self.sub(bs[0], bs[1]) == self.zero:
-                    raise ValueError(f"cannot compute discrete_log({h}, {g})")
+            if x == x_:
+                if not Zn.is_unit(b - b_):
+                    raise ValueError(f"cannot compute discrete_log({h}, {g}) in F{self.q}")
                 break
 
-        return self.mul(self.inverse(self.sub(as_[1], as_[0])), self.sub(bs[0], bs[1]))
+        return self.mul(Zn.inverse(b - b_), a_ - a)
 
     def eq(self, a, b):
         a = a @ self
