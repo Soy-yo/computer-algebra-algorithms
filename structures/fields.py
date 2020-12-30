@@ -19,19 +19,17 @@ class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):
 
 class FiniteField(Field):
 
-    # TODO comprobar irreduciblidad o generar alguno si hace falta
+    # TODO generate base polynomial if possible
     def __init__(self, p, base_poly=None):
         super(FiniteField, self).__init__(Polynomial)
-        # TODO uncomment
-        # if not IZ.is_prime(p):
-        #     raise ValueError("p must be prime")
+        if not IZ.is_prime(p):
+            raise ValueError("p must be prime")
         if base_poly is None:
             self._base_ring = ModuloIntegers(p)
         else:
             self._base_ring = FiniteField(p)[base_poly.var]
-            # TODO uncomment
-            # if not self._base_ring.is_irreducible(base_poly):
-            #     raise ValueError(f"the polynomial must be irreducible in F({p})")
+            if not self._base_ring.is_irreducible(base_poly):
+                raise ValueError(f"the polynomial must be irreducible in F({p})")
         self._p = p
         self._n = base_poly.degree if base_poly is not None else 1
         self._base_poly = base_poly if self._n != 1 else p
@@ -89,38 +87,54 @@ class FiniteField(Field):
         return x @ self
 
     def discrete_logarithm(self, h, g):
-        """TODO"""
+        """TODO g ** x mod p(y) = h"""
 
-        def get_s(chi_, k):
-            # Get coefficient a_{n-1} -> get term n - 1 as Polynomial and get its last coefficient
-            return lambda x: x.term(self.n - 1).coefficients[-1] in range(chi_ * k, chi_ * (k + 1))
+        def get_s(k):
+            def cond(x):
+                if not isinstance(x, Polynomial):
+                    if self._n == 1:
+                        return x % 3 == k
+                    return k == 0
+                if x.degree < self._n - 1:
+                    return k == 0
+                return x.coefficients[-1] % 3 == k
+
+            return cond
+
+        def f(x, a, b):
+            return (self.mul(h, x), a, Zn.add(b, Zn.one)) if s1(x) else \
+                (self.pow(x, 2), Zn.times(a, 2), Zn.times(b, 2)) if s2(x) else \
+                    (self.mul(g, x), Zn.add(a, Zn.one), b)
 
         h = h @ self
         g = g @ self
+
+        if h == self.zero or g == self.zero:
+            raise ValueError("cannot compute logarithm of 0 or with base 0")
+
         n = self.q - 1
         Zn = IZ(n)
-        chi = np.ceil(self.p / 3)
+        # chi = int(np.ceil(self.p / 3))
         # s3 = otherwise
-        s1, s2 = get_s(chi, 0), get_s(chi, 1)
+        # s1, s2 = get_s(chi, 0), get_s(chi, 1)
+        s1, s2 = get_s(1), get_s(0)
         x, a, b = self.one, Zn.zero, Zn.zero
-        xs = [x]
-        as_ = [a]
-        bs = [b]
+        xs = [x, x]
+        as_ = [a, a]
+        bs = [b, b]
         while True:
             # it k -> x_k = g^{a_k} * h^{b_k}
-            for _ in range(2):
-                x, a, b = (self.mul(h, x), a, Zn.add(b, Zn.one)) if s1(x) else \
-                    (Zn.pow(x, 2), Zn.times(a, 2), Zn.times(b, 2)) if s2(x) else \
-                        (self.mul(g, x), Zn.add(a, Zn.one), b)
-                xs.append(x)
-                as_.append(a)
-                bs.append(b)
+            xs[0], as_[0], bs[0] = f(xs[0], as_[0], bs[0])
+            x, a, b = f(xs[1], as_[1], bs[1])
+            xs[1], as_[1], bs[1] = f(x, a, b)
 
-            # x_k == x_{k/2}
-            if xs[len(xs) // 2] == x and Zn.is_unit(Zn.sub(b - bs[len(bs) // 2])):
+            # x_k == x_{2k}
+            if xs[0] == xs[1]:
+                if self.sub(bs[0], bs[1]) == self.zero:
+                    raise ValueError(f"cannot compute discrete_log({h}, {g})")
                 break
 
-        return Zn.mul(Zn.sub(a - as_[len(as_) // 2]), Zn.inverse(Zn.sub(b - bs[len(bs) // 2]))) % self.p
+        return self.mul(self.inverse(self.sub(as_[1], as_[0])), self.sub(bs[0], bs[1]))
 
     def eq(self, a, b):
         a = a @ self
@@ -199,21 +213,22 @@ class PolynomialField(Field):
 
     def is_irreducible(self, p):
         def poly(k):
-            coeffs = np.zeros(k + 1)
+            coeffs = [0] * (k + 1)
             coeffs[1] = -1
             coeffs[-1] = 1
             return Polynomial(coeffs, self._var)
 
         p = p @ self
         if isinstance(self._base_ring, FiniteField):
-            n = self._base_ring.n
+            n = p.degree
             q = self._base_ring.q
-            if self.divmod(poly(q), p)[1] != 0:
+            if self.divmod(poly(q ** n), p)[1] != 0:
                 return False
 
             factors = set(IZ.factor(n))
             for r in factors:
-                if self.gcd(p, poly(n / r)) != 1:
+                h = self.divmod(poly(q ** (n // r)), p)[1]
+                if self.gcd(p, h) != 1:
                     return False
 
             return True

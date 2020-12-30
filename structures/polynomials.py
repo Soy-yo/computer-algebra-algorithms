@@ -82,7 +82,7 @@ class Polynomial:
         elif q.var != self._var:
             if self.degree < 1:
                 # n(x) + p(y) = p(y) + n
-                return Polynomial(self._coefficients + q.coefficients, q.var.x)
+                return Polynomial(self._coefficients + q._coefficients, q.var.x)
 
             return Polynomial(self._coefficients + q, self._var.x)
 

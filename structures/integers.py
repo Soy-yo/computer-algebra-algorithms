@@ -11,6 +11,8 @@ class IntegerRing(EuclideanDomain):
 
     def __init__(self):
         super(IntegerRing, self).__init__(int)
+        self._factors = None
+        self._factor_limit = None
 
     @property
     def size(self):
@@ -98,29 +100,43 @@ class IntegerRing(EuclideanDomain):
         return 1 if a >= 0 else -1
 
     def is_prime(self, p):
-        pass
+        # TODO use a better algorithm
+        return len(self.factor(p)) == 1
 
-    def factor(self, a):
+    @property
+    def factor_limit(self):
+        return self._factor_limit
+
+    @factor_limit.setter
+    def factor_limit(self, n):
+        """
+        Sets the factor limit to be able to apply the factor method.
+        :param n: int - maximum factorable number
+        """
         # Initialization
-        a = a @ self
-        m = int(np.sqrt(a))
-        factors = np.zeros(a, dtype=np.int64)
-        for i in range(1, a, 2):
-            factors[i] = i
-        for i in range(2, a, 2):
-            factors[i] = 2
+        n = n @ self
+        m = int(np.sqrt(n))
+        self._factors = np.zeros(n, dtype=np.int64)
+        self._factor_limit = n
+        for i in range(1, n, 2):
+            self._factors[i] = i
+        for i in range(2, n, 2):
+            self._factors[i] = 2
 
         for i in range(3, m):
-            if factors[i] == i:
-                for j in range(i * i, a, i):
-                    if factors[j] == j:
-                        factors[j] = i
+            if self._factors[i] == i:
+                for j in range(i * i, n, i):
+                    if self._factors[j] == j:
+                        self._factors[j] = i
 
+    def factor(self, a):
+        if self.factor_limit is None or self.factor_limit <= a:
+            self.factor_limit = 2 * a
         # Computation
         result = []
         while a != 1:
-            result.append(factors[a])
-            a = a // factors[a]
+            result.append(self._factors[a])
+            a //= self._factors[a]
 
         return result
 
