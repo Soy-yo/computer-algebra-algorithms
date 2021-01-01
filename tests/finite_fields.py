@@ -50,20 +50,21 @@ class FiniteFieldsTest(unittest.TestCase):
     # Quizás sirva en un futuro:
     # https://math.stackexchange.com/questions/3053365/discrete-logarithm-problem-in-finite-fields
     def test_logarithm(self):
+        # g^x = h => x = log(g, h)
         field = IF(5)
-        # g^x = h => x = log(h, g)
-        self.assertEqual(0, field.discrete_logarithm(1, 2), "easy test")
-        self.assertEqual(1, field.discrete_logarithm(2, 2), "easy test")
-        self.assertEqual(3, field.discrete_logarithm(3, 2), "easy test")
+        self.assertEqual(3, field.discrete_logarithm(2, 3), "easy test")
 
-        mods = [17, 19, 23, 37, 97, 773]
-        for p in mods:
-            field = IF(p)
-            for x in range(2, p):
-                for _ in range(10):
-                    n = random.randrange(1, p)
-                    a = pow(x, n, mod=p)
-                    self.assertEqual(n, field.discrete_logarithm(a, x), "medium test")
+        field = IF(59)
+        self.assertEqual(25, field.discrete_logarithm(2, 11), "medium test")
+
+        field = IF(383)
+        self.assertEqual(110, field.discrete_logarithm(2, 228), "medium test")
+
+        # TODO find example
+        # x = Var('x')
+        # field = IF(3, x ** 2 + 1)
+        # y = field.discrete_logarithm(x + 1, x)
+        # self.assertEqual(x, field.pow(x + 1, y), "hard test")
 
 
 if __name__ == '__main__':

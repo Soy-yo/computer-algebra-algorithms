@@ -76,6 +76,13 @@ class FiniteField(Field):
         b = b @ self
         return (a * b) @ self
 
+    def pow(self, a, n):
+        a = a @ self
+        if isinstance(a, Polynomial):
+            # TODO can do it better
+            return (a ** n) @ self
+        return pow(a, n, mod=self.p)
+
     def inverse(self, a):
         if self._n == 1:
             return self._base_ring.inverse(a)
@@ -86,8 +93,8 @@ class FiniteField(Field):
         gcd, (x, _) = self._base_ring.bezout(a, self._base_poly)
         return x @ self
 
-    def discrete_logarithm(self, h, g):
-        """TODO g ** x mod p(y) = h"""
+    def discrete_logarithm(self, g, h):
+        """TODO g ** x mod p(y) = h !! g must be a generator of Z*((p-1)/2)"""
 
         def get_s(k):
             def cond(x):
@@ -102,9 +109,9 @@ class FiniteField(Field):
             return cond
 
         def f(x, a, b):
-            return (self.mul(h, x), a, Zn.add(b, Zn.one)) if s1(x) else \
-                (self.pow(x, 2), Zn.times(a, 2), Zn.times(b, 2)) if s2(x) else \
-                (self.mul(g, x), Zn.add(a, Zn.one), b)
+            return (self.mul(x, g), Zn.add(a, Zn.one), b) if s0(x) else \
+                (self.mul(x, h), a, Zn.add(b, Zn.one)) if s1(x) else \
+                    (self.pow(x, 2), Zn.times(a, 2), Zn.times(b, 2))
 
         h = h @ self
         g = g @ self
@@ -112,12 +119,10 @@ class FiniteField(Field):
         if h == self.zero or g == self.zero:
             raise ValueError("cannot compute logarithm of 0 or with base 0")
 
-        n = self.q - 1
+        n = (self.q - 1) // 2
         Zn = IZ(n)
-        # chi = int(np.ceil(self.p / 3))
-        # s3 = otherwise
-        # s1, s2 = get_s(chi, 0), get_s(chi, 1)
-        s1, s2 = get_s(1), get_s(0)
+        # s2 = otherwise
+        s0, s1 = get_s(0), get_s(1)
         x, a, b = self.one, Zn.zero, Zn.zero
         x_, a_, b_ = x, a, b
         while True:
@@ -127,11 +132,17 @@ class FiniteField(Field):
 
             # x_k == x_{2k}
             if x == x_:
-                if not Zn.is_unit(b - b_):
-                    raise ValueError(f"cannot compute discrete_log({h}, {g}) in F{self.q}")
                 break
 
-        return self.mul(Zn.inverse(b - b_), a_ - a)
+        r = Zn.sub(b, b_)
+        s = Zn.sub(a_, a)
+        if not Zn.is_unit(r):
+            # Couldn't compute
+            return None
+        x = Zn.mul(Zn.inverse(r), s)
+        if self.eq(self.pow(g, x), h):
+            return x
+        return self.add(x, n)
 
     def eq(self, a, b):
         a = a @ self
