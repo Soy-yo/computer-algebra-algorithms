@@ -47,8 +47,6 @@ class FiniteFieldsTest(unittest.TestCase):
         # (t + x) * (t ** 2 - (x - 1) * t - 1)
         self.assertTrue(field.is_irreducible(t ** 2 - t * (x - 1) - 1), "medium test True")
 
-    # Quizás sirva en un futuro:
-    # https://math.stackexchange.com/questions/3053365/discrete-logarithm-problem-in-finite-fields
     def test_logarithm(self):
         # g^x = h => x = log(g, h)
         field = IF(5)
@@ -60,11 +58,14 @@ class FiniteFieldsTest(unittest.TestCase):
         field = IF(383)
         self.assertEqual(110, field.discrete_logarithm(2, 228), "medium test")
 
-        # TODO find example
-        # x = Var('x')
-        # field = IF(3, x ** 2 + 1)
-        # y = field.discrete_logarithm(x + 1, x)
-        # self.assertEqual(x, field.pow(x + 1, y), "hard test")
+        x = Var('x')
+        field = IF(2, x ** 2 + x + 1)
+        self.assertEqual(2, field.discrete_logarithm(x, x + 1), "hard test")
+
+        field = IF(3, x ** 2 + 1)
+        self.assertEqual(7, field.discrete_logarithm(x + 1, x + 2), "hard test")
+
+        # TODO apparently we have to do it in IF_q[x]/(f(x)) but I think that makes no sense
 
 
 if __name__ == '__main__':

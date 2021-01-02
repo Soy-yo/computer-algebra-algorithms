@@ -119,7 +119,10 @@ class FiniteField(Field):
         if h == self.zero or g == self.zero:
             raise ValueError("cannot compute logarithm of 0 or with base 0")
 
-        n = (self.q - 1) // 2
+        # TODO check if g is a generator of whatever group it should be
+        n = self.q - 1
+        if self._n == 1:
+            n //= 2
         Zn = IZ(n)
         # s2 = otherwise
         s0, s1 = get_s(0), get_s(1)
