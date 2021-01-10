@@ -227,6 +227,10 @@ class PolynomialUFD(UFD):
         a = a @ self
         return -a
 
+    def pow(self, a, n):
+        a = a @ self
+        return a ** n
+
     def eq(self, a, b):
         a = a @ self
         b = b @ self
@@ -291,6 +295,7 @@ class PolynomialUFD(UFD):
         Returns the quotient and remainder of the division between polynomials a and b.
         :param a: Polynomial - dividend
         :param b: Polynomial - divisor
+        :param pseudo: bool - whether to do pseudo-division or not (default True): beta^l * a = b * q + r
         :return: (Polynomial, Polynomial) - quotient and remainder of a/b
         """
         a = a @ self

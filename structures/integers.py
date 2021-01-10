@@ -1,6 +1,6 @@
 import numpy as np
 
-from structures.domains import EuclideanDomain
+from structures.domains import EuclideanDomain, PolynomialUFD
 from structures.rings import UnitaryRing, CommutativeRing
 
 
@@ -97,21 +97,58 @@ class IntegerRing(EuclideanDomain):
 
     def is_prime(self, p, method='aks'):
         """
-        Determines whether the element p is prime or not.
+        Determines whether the element p is prime or not. This can be done through three algorithms: AKS, Miller-Rabin
+        or brute force.
+        AKS is efficient for detecting composite numbers, but is very slow for detecting big primes.
+        Miller-Rabin is a probabilistic algorithm, so it may fail, but this makes it faster in case of success.
+        Brute force uses the prime factor decomposition of the number, which is fast with small numbers, but cannot
+        be computed with very large ones as it uses a lot of memory.
         :param p: int - element to be checked
         :param method: str - algorithm to use; one of 'aks' (AKS, default), 'mr' (Miller-rabin) or 'bf' (Brute Force)
         :return: bool - True if p is prime, False otherwise
         """
-        # TODO use a better algorithm
+        from .polynomials import Var, Polynomial
+
         if method == 'aks':
             # AKS
-            return len(self.factor(p)) == 1
+            for b in range(2, int(np.floor(np.log2(p))) + 1):
+                if np.floor(p ** (1 / b)) ** b == p:
+                    return False
+            stop = False
+            r = 1
+            while not stop:
+                r += 1
+                Zr = IZ(r)
+                for k in range(1, int(np.floor(np.log2(p) ** 2)) + 1):
+                    if (p ** k) @ Zr != Zr.one:
+                        stop = True
+                        break
+            for a in range(2, r + 1):
+                if 1 < self.gcd(p, a) < p:
+                    return False
+            if p <= r:
+                return True
+            Zp = IZ(p)
+            x = Var('x')
+            poly_ring = PolynomialUFD(IZ, x)
+            for a in range(1, int(np.floor(np.sqrt(IZ(r).totient) * np.log2(p))) + 1):
+                f = poly_ring.pow((x + a), p)
+                g = x ** r - 1
+                h = poly_ring.divmod(f, g)[1]
+                h = Polynomial([c @ Zp for c in h.coefficients], h.var)
+                if h == x ** p + a:
+                    return False
+
+            return True
+
         if method == 'mr':
-            # Miller-Rabin
+            # TODO Miller-Rabin
             return len(self.factor(p)) == 1
+
         if method == 'bf':
             # Brute force
             return len(self.factor(p)) == 1
+
         raise ValueError(f"unknown method {method} (expecting one of 'aks', 'mr' or 'bf')")
 
     @property
@@ -212,6 +249,15 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
     def one(self):
         return 1
 
+    @property
+    def totient(self):
+        """
+        Euler's Phi function Phi(n), where n is the modulo of this ring. This is equivalent to the order of the
+        multiplicative group IZ_n or the number of units in this ring.
+        :return: int - Phi(n)
+        """
+        return 1 + sum(1 for i in range(2, self._modulo) if self.is_unit(i))
+
     def add(self, a, b):
         a = a @ self
         b = b @ self
@@ -249,7 +295,7 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
 
     def pow(self, a, n):
         a = a @ self
-        return (a ** n) % self._modulo
+        return pow(a, n, self._modulo)
 
     def eq(self, a, b):
         return a @ self == b @ self

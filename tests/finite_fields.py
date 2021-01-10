@@ -65,7 +65,7 @@ class FiniteFieldsTest(unittest.TestCase):
         field = IF(3, x ** 2 + 1)
         self.assertEqual(7, field.discrete_logarithm(x + 1, x + 2), "hard test")
 
-        # TODO apparently we have to do it in IF_q[x]/(f(x)) but I think that makes no sense
+        # TODO apparently we have to do it in IF_q[x]/(f(x)) but I think that it makes no sense
 
 
 if __name__ == '__main__':

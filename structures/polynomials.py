@@ -1,4 +1,3 @@
-from functools import reduce
 from itertools import accumulate
 
 import numpy as np
@@ -115,13 +114,25 @@ class Polynomial:
         return Polynomial(q * self._coefficients, self._var.x)
 
     def __pow__(self, n):
+        def pow(p, k):
+            if k == 1:
+                return Polynomial(p._coefficients, p._var.x)
+            if k % 2 == 0:
+                return pow(p, k // 2) * pow(p, k // 2)
+            return p * pow(p, k - 1)
+
         if n < 0:
             raise ValueError("exponent must be positive or zero")
         if n == 0:
             return Polynomial([1], self._var.x)
         if n == 1:
             return Polynomial(self.coefficients, self._var.x)
-        return reduce(lambda x, y: x * y, (self for _ in range(n)))
+        if isinstance(n, (float, np.float)) and not n.is_integer():
+            raise ValueError("exponent must be an integer")
+        if not isinstance(n, (int, np.integer)):
+            raise ValueError("exponent must be an integer")
+
+        return pow(self, n)
 
     def __eq__(self, q):
         if not isinstance(q, Polynomial):

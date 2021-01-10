@@ -10,4 +10,4 @@ Implementación de algoritmos de la asignatura Álgebra Computacional (Matemáti
 - [ ] Algoritmo de factorización de un polinomio en cuerpo finito parte 1, 2 y 3.
 - [ ] Algoritmo de factorizacion de Berlekamp en cuerpos finitos.
 - [ ] Algorimos de factorizacion en Z[x].
-- [ ] Algorimo de primalidad de AKS.
+- [x] Algorimo de primalidad de AKS.

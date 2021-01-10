@@ -231,6 +231,10 @@ class PolynomialField(Field):
         a = a @ self
         return -a
 
+    def pow(self, a, n):
+        a = a @ self
+        return a ** n
+
     def eq(self, a, b):
         a = a @ self
         b = b @ self
