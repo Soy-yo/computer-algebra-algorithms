@@ -2,7 +2,6 @@ import abc
 from functools import reduce
 
 
-# TODO: permitir los corchetes para devolver su anillo de polinomios :O
 class Ring(abc.ABC):
     """
     Class representing a ring. It consists of a set equipped with two binary operations that generalize the arithmetic
@@ -23,14 +22,6 @@ class Ring(abc.ABC):
         :return: type - type of the elements contained in this ring
         """
         return self._dtype
-
-    @property
-    def size(self):
-        """
-        Number of elements in this ring.
-        :return: int - number of elements in this ring or -1 if it is infinity
-        """
-        raise NotImplementedError
 
     @property
     def char(self):

@@ -15,10 +15,6 @@ class IntegerRing(EuclideanDomain):
         self._factor_limit = None
 
     @property
-    def size(self):
-        return -1
-
-    @property
     def char(self):
         return 0
 
@@ -99,12 +95,31 @@ class IntegerRing(EuclideanDomain):
         a = a @ self
         return 1 if a >= 0 else -1
 
-    def is_prime(self, p):
+    def is_prime(self, p, method='aks'):
+        """
+        Determines whether the element p is prime or not.
+        :param p: int - element to be checked
+        :param method: str - algorithm to use; one of 'aks' (AKS, default), 'mr' (Miller-rabin) or 'bf' (Brute Force)
+        :return: bool - True if p is prime, False otherwise
+        """
         # TODO use a better algorithm
-        return len(self.factor(p)) == 1
+        if method == 'aks':
+            # AKS
+            return len(self.factor(p)) == 1
+        if method == 'mr':
+            # Miller-Rabin
+            return len(self.factor(p)) == 1
+        if method == 'bf':
+            # Brute force
+            return len(self.factor(p)) == 1
+        raise ValueError(f"unknown method {method} (expecting one of 'aks', 'mr' or 'bf')")
 
     @property
     def factor_limit(self):
+        """
+        Factor limit to be able to apply the factor method.
+        :return: int - factor limit to be able to apply the factor method
+        """
         return self._factor_limit
 
     @factor_limit.setter
@@ -151,17 +166,12 @@ class IntegerRing(EuclideanDomain):
     def __latex__(self):
         return r"\mathbb{Z}"
 
-    # TODO return F_n if n is prime and some trivial ring if n == 0
     def __call__(self, n):
         """
         Returns an instance of the ring of integers modulo n (IZ/nIZ).
         :param n: int - modulo of the ring
-        :return: ModuloIntegers or FiniteField - ring of integers modulo n instance
+        :return: ModuloIntegers - ring of integers modulo n instance
         """
-        if n == 0:
-            pass
-        if self.is_prime(n):
-            pass
         return ModuloIntegers(n)
 
     def __repr__(self):
@@ -182,14 +192,13 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
     """
 
     def __init__(self, n):
+        """
+        :param n: int - modulo of the elements (Z_n = {0, ..., n-1})
+        """
         super(ModuloIntegers, self).__init__(int)
         if n <= 1:
             raise ValueError("n must be a greater than 1 (IZ/IZ = {0}, so it is not an unitary ring)")
         self._modulo = n
-
-    @property
-    def size(self):
-        return self._modulo
 
     @property
     def char(self):
@@ -255,6 +264,9 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
         if a in self:
             return int(a) % self._modulo
         raise ValueError(f"{a} is not an element of {self}")
+
+    def __eq__(self, other):
+        return isinstance(other, ModuloIntegers) and other._modulo == self._modulo
 
     def __latex__(self):
         return r"\mathbb{Z}_{" + str(self._modulo) + "}"

@@ -188,10 +188,17 @@ class EuclideanDomain(UFD, abc.ABC):
 
 # TODO sobreescribir __div__ para poder hacer IZ_p[x]/(f(x))
 class PolynomialUFD(UFD):
+    """
+    Class representing D[x], an UFD of polynomials over a domain D with variable x.
+    """
 
-    def __init__(self, base_ring, var):
+    def __init__(self, base_domain, var):
+        """
+        :param base_domain: Domain - domain where coefficients live in
+        :param var: Var or str - variable of polynomials in this UFD
+        """
         super(PolynomialUFD, self).__init__(Polynomial)
-        self._base_ring = base_ring
+        self._base_ring = base_domain
         self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
     @property
@@ -256,22 +263,35 @@ class PolynomialUFD(UFD):
         return self._base_ring.unit_part(a.coefficients[-1])
 
     def content(self, a):
+        """
+        Returns the gcd of the coefficients of a.
+        :param a: Polynomial - polynomial for which compute its content
+        :return: self.base_ring.dtype - gcd of the polynomial's coefficients
+        """
         a = a @ self
         if a.degree < 1:
             return a.coefficients[0] if a.degree == 0 else 0
         return self._base_ring.gcd(*a.coefficients)
 
-    # GCD de los coeficientes
+    # a = u(a) * cont(a) * pp(a)
     def primitive_part(self, a):
+        """
+        Returns the primitive part of the given polynomial, that is, the polynomial divided by its primitive part
+        (unit-normalized).
+        :param a: Polynomial - polynomial for which compute its primitive part
+        :return: Polynomial - primitive part of a
+        """
         a = a @ self
         if a == self.zero:
             return self.zero
         return self.divmod(a, self.mul(self.unit_part(a), self.content(a)), pseudo=False)[0]
 
-    # a = u(a) * cont(a) * pp(a)
     def divmod(self, a, b, pseudo=True):
         """
-        TODO
+        Returns the quotient and remainder of the division between polynomials a and b.
+        :param a: Polynomial - dividend
+        :param b: Polynomial - divisor
+        :return: (Polynomial, Polynomial) - quotient and remainder of a/b
         """
         a = a @ self
         b = b @ self
@@ -305,7 +325,6 @@ class PolynomialUFD(UFD):
         return quotient, remainder
 
     # TODO sacar fuera las funciones repetidas
-    # Divides a(x) / b(x) and returns it's quotient and remainder
     def gcd(self, a, b, *args):
         c = self.primitive_part(a)
         d = self.primitive_part(b)
@@ -323,6 +342,9 @@ class PolynomialUFD(UFD):
 
     def contains(self, a):
         return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
+
+    def __eq__(self, other):
+        return isinstance(other, PolynomialUFD) and self._var == other._var and self._base_ring == other._base_ring
 
     def at(self, a):
         if a in self._base_ring:

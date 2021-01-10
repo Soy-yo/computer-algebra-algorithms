@@ -18,9 +18,21 @@ class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):
 
 
 class FiniteField(Field):
+    """
+    Class representing a finite field F_q = Z_p[x]/(f(x)), such that q = p^n for p prime and f a polynomial of degree n.
+    If n = 1 this is isomorphic to Z_p but this implementation inherits all Field methods instead of just
+    UnitaryRing ones.
+    Its elements are the equivalence classes of polynomials over Z_p[x] modulo f(x) and their representatives are
+    taken as the ones with degree lower than n.
+    """
 
     # TODO generate base polynomial if possible
     def __init__(self, p, base_poly=None):
+        """
+        :param p: int - prime number, desired modulo Z_p
+        :param base_poly: Polynomial or None - if None (default) this field is Z_p; otherwise it is
+                          Z_p[x]/(base_poly(x))
+        """
         super(FiniteField, self).__init__(Polynomial)
         if not IZ.is_prime(p):
             raise ValueError("p must be prime")
@@ -45,10 +57,6 @@ class FiniteField(Field):
     @property
     def q(self):
         return self._p ** self._n
-
-    @property
-    def size(self):
-        return self.q
 
     @property
     def char(self):
@@ -94,7 +102,16 @@ class FiniteField(Field):
         return x @ self
 
     def discrete_logarithm(self, g, h):
-        """TODO g ** x mod p(y) = h !! g must be a generator of Z*((p-1)/2)"""
+        """
+        Returns the discrete logarithm of h with base g, that is, an element x such that g ** x = h mod P. If this
+        finite field is Fp such that p is prime, then g must be a generator of the multiplicative group of Z_{(p-1)/2}.
+        Otherwise, g must be a generator of the multiplicative group of F_q such that q = p^n.
+        This algorithm may fail with a low probability, inverse to self.q or if the previous condition is not
+        fulfilled. In these cases None will be returned.
+        :param g: int or Polynomial - base of the logarithm
+        :param h: int or Polynomial - argument of the logarithm
+        :return: x: int - element that satisfies g ** x = h mod P
+        """
 
         def get_s(k):
             def cond(x):
@@ -160,6 +177,9 @@ class FiniteField(Field):
     def at(self, a):
         return self._base_ring.divmod(a, self._base_poly)[1] @ self._base_ring if self._n != 1 else a @ self._base_ring
 
+    def __eq__(self, other):
+        return isinstance(other, FiniteField) and self.q == other.q and self._base_poly == other._base_poly
+
     def __latex__(self):
         return fr"\mathbb{{F}}_{self.q}"
 
@@ -168,10 +188,17 @@ IF = FiniteField
 
 
 class PolynomialField(Field):
+    """
+    Class representing K[x], a field of polynomials over a field K with variable x.
+    """
 
-    def __init__(self, base_ring, var):
+    def __init__(self, base_field, var):
+        """
+        :param base_field: Field - field where coefficients live in
+        :param var: Var or str - variable of polynomials in this field
+        """
         super(PolynomialField, self).__init__(Polynomial)
-        self._base_ring = base_ring
+        self._base_ring = base_field
         self._var = Var(var.x) if isinstance(var, Var) else Var(var)
 
     @property
@@ -223,6 +250,15 @@ class PolynomialField(Field):
         return a in self._base_ring or all(ai in self._base_ring for ai in a.coefficients)
 
     def is_irreducible(self, p):
+        """
+        Determines whether the given polynomial is irreducible or not, that is, it cannot be expressed as P = f*g
+        for any other polynomials f and g. A more suitable alias for is_prime.
+        Valid for FiniteFields only as they are the only fields implemented for the moment.
+        This algorithm becomes really slow when the base ring is Fq with q = p^n, n > 1 and deg(P) > 2.
+        :param p: Polynomial over a FiniteField - polynomial to determine if it is irreducible or not
+        :return: bool - True if p is irreducible, False otherwise
+        """
+
         def poly(k):
             coeffs = [0] * (k + 1)
             coeffs[1] = -1
@@ -265,20 +301,32 @@ class PolynomialField(Field):
             return self.one
         return a.coefficients[-1]
 
-    # GCD de los coeficientes
     def content(self, a):
+        """
+        Returns the gcd of the coefficients of a. As this is a field, just 1.
+        :param a: Polynomial - polynomial for which compute its content
+        :return: self.base_ring.dtype - self.base_ring.one
+        """
         a @ self
         return self._base_ring.one
 
     # a = u(a) * cont(a) * pp(a)
     def primitive_part(self, a):
+        """
+        Returns the primitive part of the given polynomial, that is, the polynomial divided by its primitive part
+        (unit-normalized). As this is a field, the primitive part of a is just its normal part (content(a) = 1).
+        :param a: Polynomial - polynomial for which compute its primitive part
+        :return: Polynomial - primitive part of a
+        """
         a = a @ self
         return self.normal_part(a)
 
-    # Divides a(x) / b(x) and returns it's quotient and remainder
     def divmod(self, a, b):
         """
-        TODO
+        Returns the quotient and remainder of the division between polynomials a and b.
+        :param a: Polynomial - dividend
+        :param b: Polynomial - divisor
+        :return: (Polynomial, Polynomial) - quotient and remainder of a/b
         """
         a = a @ self
         b = b @ self
@@ -345,6 +393,9 @@ class PolynomialField(Field):
             raise ValueError("the element must be a polynomial")
         coeffs = a.coefficients
         return Polynomial([ai @ self._base_ring for ai in coeffs], self._var)
+
+    def __eq__(self, other):
+        return isinstance(other, PolynomialField) and self._var == other._var and self._base_ring == other._base_ring
 
     def __latex__(self):
         return self._base_ring.__latex__() + "[" + self._var.__latex__() + "]"

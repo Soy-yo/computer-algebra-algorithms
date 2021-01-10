@@ -196,6 +196,9 @@ class Var(Polynomial):
     x = None
 
     def __init__(self, x):
+        """
+        :param x: str - variable representation; accepts LaTeX formulas, for example '\lambda'
+        """
         super().__init__([0, 1], self)
         self.x = x
 
@@ -212,8 +215,15 @@ class Var(Polynomial):
 
 
 class Coefficients:
+    """
+    Array-like class representing coefficients of a polynomial. It implements basic operators, such as addition,
+    product, etc.
+    """
 
     def __init__(self, a=None):
+        """
+        :param a: itreable - list of coefficients (default empty)
+        """
         if a is None:
             a = []
         self._a = [c for c in a]
@@ -300,8 +310,15 @@ class Coefficients:
         return self.copy()
 
     def copy(self):
+        """
+        Returns a copy of self.
+        :return: Coefficients - a copy of this coefficients
+        """
         return Coefficients(self._a)
 
     def trim(self):
+        """
+        Removes leading zeroes in this coefficients.
+        """
         while self._a and self._a[-1] == 0:
             self._a.pop()
