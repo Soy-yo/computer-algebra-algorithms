@@ -143,6 +143,9 @@ class Polynomial:
             return self.degree == q.degree and self._coefficients == q.coefficients
         return self._var == q.var and self.degree == q.degree and self._coefficients == q.coefficients
 
+    def __hash__(self):
+        return hash((self._coefficients, self._var.x))
+
     def __call__(self, x):
         if not self._coefficients:
             return 0
@@ -310,6 +313,9 @@ class Coefficients:
         if not isinstance(other, Coefficients):
             return False
         return self._a == other._a
+
+    def __hash__(self):
+        return hash(tuple(self._a))
 
     def __bool__(self):
         return len(self) > 0

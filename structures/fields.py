@@ -259,7 +259,7 @@ class PolynomialField(Field):
         for any other polynomials f and g. A more suitable alias for is_prime.
         Valid for FiniteFields only as they are the only fields implemented for the moment.
         This algorithm becomes really slow when the base ring is Fq with q = p^n, n > 1 and deg(P) > 2.
-        :param p: Polynomial over a FiniteField - polynomial to determine if it is irreducible or not
+        :param p: Polynomial over FiniteField - polynomial to determine if it is irreducible or not
         :return: bool - True if p is irreducible, False otherwise
         """
 
@@ -289,7 +289,81 @@ class PolynomialField(Field):
     def is_prime(self, p):
         return self.is_irreducible(p)
 
-    def factor(self, a):
+    def factor(self, f, method=None):
+        """
+        Returns the factorization of the given polynomial f, that is, a set of irreducible polynomials f1, ...,
+        fk such that f = f1 * ... * fk. Implemented only for polynomials over finite fields.
+        There exists two algorithms for polynomials over finite fields: Berlekamp Factorization Algorithm and
+        Cantor/Zassenhaus and both are implemented here.
+        :param f: Polynomial over FiniteField - polynomial to be factored
+        :param method: str - algorithm to be used; one of 'bfa' (Berlekamp Factorization Algorithm, default) or 'cz'
+                             (Cantor/Zassenhaus)
+        :return: [Polynomial] - list of factors of f
+        """
+        # Make the polynomial monic
+        c0 = f.coefficients[-1]
+        f = self.divmod(f, c0)[0]
+        if isinstance(self._base_ring, FiniteField):
+            def split():
+                # Berlekamp splitting
+                pass
+
+            if method is None:
+                method = 'bfa'
+
+            if method == 'bfa':
+                pass
+            if method == 'cz':
+                pass
+
+        raise ValueError(f"cannot square-free factor in {self._base_ring}")
+
+    def square_free_factor(self, f):
+        """
+        Returns the square-free factorization of the given monic polynomial f, that is, coprime square-free
+        polynomials f1, ..., fk such that f = f1 * ... * fk^k. Implemented only for polynomials over finite fields.
+        :param f: Polynomial over FiniteField - polynomial to be factored
+        :return: {int -> Polynomial} - mapping from each index to each square-free factor
+        """
+        if isinstance(self._base_ring, FiniteField):
+            def pth_root(g):
+                k = p ** (n - 1)
+                coeffs = [self._base_ring.pow(c, k) for c in g.coefficients[::p]]
+                return Polynomial(coeffs, g.var)
+
+            f = f @ self
+            p = self._base_ring.p
+            n = self._base_ring.n
+
+            result = {}
+            s = 1
+            while f != self.one:
+                j = 1
+                g = self.divmod(f, self.gcd(f, f.derivative()))[0]
+                while g != self.one:
+                    f = self.divmod(f, g)[0]
+                    h = self.gcd(f, g)
+                    m = self.divmod(g, h)[0]
+                    if m != self.one:
+                        result[j * s] = m
+                    g = h
+                    j += 1
+                if f != self.one:
+                    f = pth_root(f)
+                    s = p * s
+
+            return result
+
+        raise ValueError(f"cannot square-free factor in {self._base_ring}")
+
+    def distinct_degree_factor(self, f):
+        """
+        Returns the distinct-degree factorization of the given monic polynomial f, that is, a set of irreducible
+        polynomials f_{i_1}, ..., f_{i_k} of degree i_j for j in {1, ..., k} such that f = f_{i_1} * ... * f_{i_k}.
+        Implemented only for polynomials over finite fields.
+        :param f: Polynomial over FiniteField - polynomial to be factored
+        :return: {int -> Polynomial} - mapping from each degree to each distinct-degree factors
+        """
         pass
 
     def normal_part(self, a):

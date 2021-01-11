@@ -234,7 +234,7 @@ class ModuloIntegers(UnitaryRing, CommutativeRing):
         """
         super(ModuloIntegers, self).__init__(int)
         if n <= 1:
-            raise ValueError("n must be a greater than 1 (IZ/IZ = {0}, so it is not an unitary ring)")
+            raise ValueError("n must be greater than 1 (IZ/IZ = {0}, so it is not an unitary ring)")
         self._modulo = n
 
     @property

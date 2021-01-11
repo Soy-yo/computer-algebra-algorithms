@@ -67,6 +67,29 @@ class FiniteFieldsTest(unittest.TestCase):
 
         # TODO apparently we have to do it in IF_q[x]/(f(x)) but I think that it makes no sense
 
+    def test_factor(self):
+        t = Var('t')
+        x = Var('x')
+        field = IF(2)[t]
+
+        self.assertDictEqual({2: t + 1 @ field}, field.square_free_factor(t ** 2 + 1), "easy test")
+
+        f = (t + 1) ** 2 * t ** 3
+        self.assertDictEqual({3: t @ field, 2: t + 1 @ field}, field.square_free_factor(f), "easy test")
+
+        field = IF(5)[t]
+        g = t
+        h = t + 3
+        f = g ** 3 * h ** 3
+        self.assertDictEqual({3: g * h}, field.square_free_factor(f), "medium test")
+
+        field = IF(7, x ** 3 + x + 1)[t]
+        f1 = t
+        f2 = t ** 2 + 2
+        f3 = t ** 3 + t * (x + 1) + (x ** 2)
+        f = f1 ** 3 * f2 ** 2 * f3 ** 3
+        self.assertDictEqual({2: f2, 3: f1 * f3}, field.square_free_factor(f), "hard test")
+
 
 if __name__ == '__main__':
     unittest.main()
