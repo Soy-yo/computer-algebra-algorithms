@@ -6,6 +6,18 @@ from structures.integers import IZ, ModuloIntegers
 
 
 def solve_congruences(a, b, n=None):
+    """
+    Solves the congruence system ax ≡ b mod n. Returns an integer x such that a_i x ≡ b_i mod n_i for all i. As a
+    requirement, all n_i must be pairwise coprime and all a_i must be invertible modulo n_i.
+    The arguments passed to this function can be either (a, b, n) or (b, n). In the latter case a_i is assumed to
+    be 1 for all i.
+    :param a: [int] - all x coefficients
+    :param b: [int] - all independent terms
+    :param n: [int] - all modulus
+    :return: (int, ModuloIntegers) - an element x that matches all congruences and its modulo ring (that is,
+                                     the solution to the system is x + kN for all integer k where N is the modulo of
+                                     the returned ring)
+    """
     if n is None:
         n = b
         b = a
@@ -30,7 +42,7 @@ def solve_congruences(a, b, n=None):
     b = (inverses * b) % n
 
     if len(b) == 1:
-        return b[0]
+        return b[0], ModuloIntegers(n[0])
 
     lcm = reduce(IZ.lcm, n)
     ring = ModuloIntegers(lcm)
