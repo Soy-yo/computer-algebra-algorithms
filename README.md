@@ -11,3 +11,13 @@ Implementación de algoritmos de la asignatura Álgebra Computacional (Matemáti
 - [ ] Algoritmo de factorizacion de Berlekamp en cuerpos finitos.
 - [ ] Algorimos de factorizacion en Z[x].
 - [x] Algorimo de primalidad de AKS.
+
+## Algoritmos opcionales
+
+- [ ] Miller-Rabin.
+- [ ] Multidivisión multivariable.
+- [ ] Algoritm de Buchberger
+- [ ] Cantor/Zassenhaus ??
+- [ ] Pertenencia un polinomio a un ideal
+- [x] Exponenciación rápida (repeated squaring)
+- [ ] Hensel-lifting

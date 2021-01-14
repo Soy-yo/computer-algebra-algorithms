@@ -67,28 +67,113 @@ class FiniteFieldsTest(unittest.TestCase):
 
         # TODO apparently we have to do it in IF_q[x]/(f(x)) but I think that it makes no sense
 
-    def test_factor(self):
+    def test_sf_factor(self):
         t = Var('t')
         x = Var('x')
         field = IF(2)[t]
 
-        self.assertDictEqual({2: t + 1 @ field}, field.square_free_factor(t ** 2 + 1), "easy test")
+        self.assertSetEqual({(t + 1 @ field, 2)}, set(field.square_free_factorization(t ** 2 + 1)), "easy test")
 
         f = (t + 1) ** 2 * t ** 3
-        self.assertDictEqual({3: t @ field, 2: t + 1 @ field}, field.square_free_factor(f), "easy test")
+        self.assertSetEqual({(t @ field, 3), (t + 1 @ field, 2)}, set(field.square_free_factorization(f)), "easy test")
 
         field = IF(5)[t]
-        g = t
-        h = t + 3
-        f = g ** 3 * h ** 3
-        self.assertDictEqual({3: g * h}, field.square_free_factor(f), "medium test")
+        g = t @ field
+        h = (t + 3) @ field
+        f = (g ** 3 * h ** 3) @ field
+        self.assertSetEqual({(g * h @ field, 3)}, set(field.square_free_factorization(f)), "medium test")
 
         field = IF(7, x ** 3 + x + 1)[t]
-        f1 = t
-        f2 = t ** 2 + 2
-        f3 = t ** 3 + t * (x + 1) + (x ** 2)
-        f = f1 ** 3 * f2 ** 2 * f3 ** 3
-        self.assertDictEqual({2: f2, 3: f1 * f3}, field.square_free_factor(f), "hard test")
+        f1 = t @ field
+        f2 = (t ** 2 + 2) @ field
+        f3 = (t ** 3 + t * (x + 1) + (x ** 2)) @ field
+        f = (f1 ** 3 * f2 ** 2 * f3 ** 3) @ field
+        self.assertSetEqual({(f2, 2), (f1 * f3, 3)}, set(field.square_free_factorization(f)), "hard test")
+
+    def test_dd_factor(self):
+        t = Var('t')
+        x = Var('x')
+        field = IF(2)[t]
+
+        self.assertSetEqual({(t + 1 @ field, 1)}, set(field.distinct_degree_factorization(t + 1)), "easy test")
+
+        f = (t ** 3 + t + 1) @ field
+        self.assertSetEqual({(f, 3)}, set(field.distinct_degree_factorization(f)), "easy test")
+
+        g = (t + 1) @ field
+        h = (f * g) @ field
+        self.assertSetEqual({(f, 3), (g, 1)}, set(field.distinct_degree_factorization(h)), "easy test")
+
+        h1 = (t ** 7 + t ** 6 + t ** 5 + t ** 4 + t ** 2 + t + 1) @ field
+        # "Random" polynomial, but it's irreducible
+        h2 = (t ** 7 + t ** 5 + t ** 4 + t ** 3 + t ** 2 + t + 1) @ field
+        self.assertSetEqual({(f, 3), (g, 1), ((h1 * h2) @ field, 7)},
+                            set(field.distinct_degree_factorization((f * g * h1 * h2) @ field)), "medium test")
+
+        field = IF(2, x ** 3 + x + 1)[t]
+        f1 = t @ field
+        # "Random" polynomials, but they are irreducible
+        f2 = (t ** 3 + t ** 2 + (x ** 2 + x)) @ field
+        f3 = (t ** 3 + t * (x + 1) + (x ** 2)) @ field
+        f = (f1 * f2 * f3) @ field
+        self.assertSetEqual({(f1, 1), ((f2 * f3) @ field, 3)}, set(field.distinct_degree_factorization(f)), "hard test")
+
+    def test_ed_factor(self):
+        t = Var('t')
+        x = Var('x')
+        field = IF(2)[t]
+
+        self.assertSetEqual({(t + 1) @ field}, set(field.equal_degree_factorization(t + 1, 1)), "easy test")
+
+        f = (t ** 2 + 1) @ field
+        self.assertSetEqual({(t + 1) @ field}, set(field.equal_degree_factorization(f, 1)), "easy test")
+
+        f = ((t + 1) ** 3 * t ** 3) @ field
+        self.assertSetEqual({((t + 1) ** 3) @ field, (t ** 3) @ field},
+                            set(field.equal_degree_factorization(f, 3)), "medium test")
+
+        # TODO some test with other p != 2
+
+        field = IF(2, x ** 3 + x + 1)[t]
+        f1 = (t ** 2 + t + x + 1) @ field
+        f2 = (t ** 2 * x + 1) @ field
+        f = (f1 * f2) @ field
+        self.assertSetEqual({f1, f2}, set(field.equal_degree_factorization(f, 2)), "hard test")
+
+    def test_factor(self):
+        method = 'bfa'
+        t = Var('t')
+        x = Var('x')
+        field = IF(2)[t]
+
+        f = (t + 1) @ field
+        self.assertEqual([f], field.factor(f, method=method), "easy test")
+
+        g = (t + 1) @ field
+        h = t @ field
+        f = (g * h) @ field
+        self.assertEqual([g, h], field.factor(f, method=method), "easy test")
+
+        f = (g ** 2) @ field
+        self.assertEqual([g, g], field.factor(f, method=method), "easy test")
+
+        field = IF(5)[t]
+        g = (2 * t + 1) @ field
+        h = field.divmod(g, 2)[0]
+        f = (g ** 2) @ field
+        self.assertEqual([h, h, 4 @ field], field.factor(f, method=method), "medium test")
+
+        g = (t ** 3 + t + 1) @ field
+        h = (t + 2) @ field
+        f = (g ** 2 * h ** 2) @ field
+        self.assertEqual([g, g, h, h], field.factor(f, method=method), "medium test")
+
+        field = IF(2, x ** 3 + x + 1)[t]
+        f1 = (t + 1) @ field
+        f2 = (t + x + 1) @ field
+        f3 = (t ** 2 + t * x + x) @ field
+        f = (f1 ** 3 * f2 ** 2 * f3) @ field
+        self.assertCountEqual([f1, f1, f1, f2, f2, f3], field.factor(f, method=method), "hard test")
 
 
 if __name__ == '__main__':
