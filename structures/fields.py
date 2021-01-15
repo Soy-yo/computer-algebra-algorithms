@@ -296,7 +296,7 @@ class PolynomialField(Field):
     def is_prime(self, p):
         return self.is_irreducible(p)
 
-    def factor(self, f, method='bfa'):
+    def factor(self, f, method=None):
         """
         Returns the factorization of the given polynomial f, that is, a set of irreducible polynomials f1, ...,
         fk such that f = f1 * ... * fk. Implemented only for polynomials over finite fields.
@@ -317,6 +317,9 @@ class PolynomialField(Field):
             return [f] if c0 == self.one else [f, c0]
 
         if isinstance(self._base_ring, FiniteField):
+            if method is None:
+                method = 'bfa'
+
             if method == 'bfa':
                 def bfa(f):
                     phi = self._construct_phi(f)

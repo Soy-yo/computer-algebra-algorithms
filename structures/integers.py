@@ -181,6 +181,13 @@ class IntegerRing(EuclideanDomain):
                     if self._factors[j] == j:
                         self._factors[j] = i
 
+    def divisors(self, a, positive=False):
+        a = abs(a)
+        if positive:
+            return [x for x in range(1, a + 1) if self.divides(x, a)]
+        ds = self.divisors(a, positive=True)
+        return [-d for d in ds] + ds
+
     def factor(self, a):
         if self.factor_limit is None or self.factor_limit <= a:
             self.factor_limit = 2 * a

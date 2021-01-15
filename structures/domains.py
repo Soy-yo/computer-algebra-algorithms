@@ -1,4 +1,8 @@
 import abc
+import itertools as it
+
+from sympy import Matrix
+from sympy.core import Rational
 
 from structures.polynomials import Polynomial, Var
 from structures.rings import Ring, CommutativeRing, UnitaryRing
@@ -123,7 +127,7 @@ class EuclideanDomain(UFD, abc.ABC):
         :param b: self.dtype - right-hand-side
         :return: bool - True if a|b, else False
         """
-        return self.rem(a, b) == self.zero
+        return self.rem(b, a) == self.zero
 
     def gcd(self, a, b, *args):
         """
@@ -252,8 +256,55 @@ class PolynomialUFD(UFD):
     def is_prime(self, p):
         return self.is_irreducible(p)
 
-    def factor(self, a):
-        pass
+    def factor(self, f, method=None):
+        """TODO"""
+        from .integers import IntegerRing, IZ
+
+        if isinstance(self._base_ring, IntegerRing):
+            if method is None:
+                method = 'km'
+
+            f = f @ self
+
+            if method == 'km':
+                def km(f):
+                    a = [0, 1]
+                    for ai in a:
+                        if f(ai) == 0:
+                            return Polynomial([-ai, 1], f.var)
+                    ms = IZ.divisors(f(a[0]), positive=True)
+                    for i in range(1, f.degree // 2 + 1):
+                        ms_all = IZ.divisors(f(a[i]))
+                        if i > 1:
+                            ms = [(*mi[0], mi[1]) for mi in it.product(ms, ms_all)]
+                        else:
+                            ms = list(it.product(ms, ms_all))
+                        matrix = [list(it.accumulate([1] + [ai] * (len(a) - 1), lambda x, y: x * y)) for ai in a]
+                        matrix = Matrix(matrix)
+                        for m in ms:
+                            b = matrix.LUsolve(Matrix(m))
+                            g = Polynomial(b, f.var)
+                            q, r = self._divmod_rational(f, g)
+                            if b[i] != 0 and r == self.zero:
+                                return g, q
+                        a.append(-a[-1] if a[-1] > 0 else -a[-1] + 1)
+
+                    return f, None
+
+                c = self.content(f)
+                f = self.primitive_part(f)
+
+                factors = []
+                while True:
+                    g, q = km(f)
+                    factors.append(g)
+                    if g == f:
+                        if c == 1:
+                            return factors
+                        return factors + IZ.factor(c)
+                    f = Polynomial([int(c) for c in q.coefficients], f.var)
+
+        raise ValueError(f"cannot factor in {self._base_ring}")
 
     def normal_part(self, a):
         a = a @ self
@@ -326,6 +377,30 @@ class PolynomialUFD(UFD):
 
             quotient = self.add(quotient, monomial_divisor)
             remainder = self.sub(remainder, self.mul(monomial_divisor, b))
+
+        return quotient, remainder
+
+    def _divmod_rational(self, a, b):
+        if a.var != b.var:
+            raise ValueError("variables must be the same")
+
+        if b == self.zero:
+            raise ZeroDivisionError
+
+        if a.degree < b.degree:
+            return self.zero, a
+
+        quotient, remainder = Rational(0), a
+
+        while remainder.degree >= b.degree:
+            monomial_exponent = remainder.degree - b.degree
+            monomial_zeros = [Rational(0) for _ in range(monomial_exponent)]
+            monomial_divisor = Polynomial(monomial_zeros +
+                                          [Rational(remainder.coefficients[-1], b.coefficients[-1])],
+                                          a.var)
+
+            quotient = quotient + monomial_divisor
+            remainder = remainder - monomial_divisor * b
 
         return quotient, remainder
 
