@@ -94,7 +94,6 @@ class FiniteField(Field):
     def pow(self, a, n):
         a = a @ self
         if isinstance(a, Polynomial):
-            # TODO can do it better
             return (a ** n) @ self
         return pow(a, n, mod=self.p)
 
@@ -250,7 +249,6 @@ class PolynomialField(Field):
     def is_unit(self, a):
         pass
 
-    # TODO ???
     def inverse(self, a):
         pass
 
@@ -300,13 +298,15 @@ class PolynomialField(Field):
         """
         Returns the factorization of the given polynomial f, that is, a set of irreducible polynomials f1, ...,
         fk such that f = f1 * ... * fk. Implemented only for polynomials over finite fields.
-        There exists two algorithms for polynomials over finite fields: Berlekamp Factorization Algorithm and
-        Cantor/Zassenhaus and both are implemented here.
+        There exists three algorithms for polynomials over finite fields: Berlekamp Factorization Algorithm,
+        Cantor/Zassenhaus and three-step factor and all are implemented here.
         BFA works well only when q of the finite field is relatively small.
         Cantor/Zassenhaus algorithm is an enhanced version of Berlekamp, capable of working with larger primes.
+        Three-step algorithm uses square-free factorization, distinct-degree factorization and equal-degree
+        factorization.
         :param f: Polynomial over FiniteField - polynomial to be factored
-        :param method: str - algorithm to be used; one of 'bfa' (Berlekamp Factorization Algorithm, default) or 'cz'
-                             (Cantor/Zassenhaus)
+        :param method: str - algorithm to be used; one of 'bfa' (Berlekamp Factorization Algorithm, default), 'cz'
+                             (Cantor/Zassenhaus) or 'ts' (three-step)
         :return: [Polynomial] - list of factors of f
         """
         # Make the polynomial monic
@@ -324,28 +324,27 @@ class PolynomialField(Field):
                 def bfa(f):
                     phi = self._construct_phi(f)
                     for i in range(len(phi)):
-                        phi[i][i] = phi[i][i] - 1
+                        phi[i][i] = self._base_ring.sub(phi[i][i], self._base_ring.one)
                     vs = self._ker(phi)
                     vs = [Polynomial(v, f.var) @ self for v in vs]
 
-                    factors = [f]
+                    factors = {f}
                     r = 1
                     while len(factors) < len(vs):
-                        print(factors)
-                        facs = []
+                        facs = set()
                         for u in factors:
                             # Berlekamp splitting
                             for s in self._base_ring.elements:
                                 g = self.gcd(self.sub(vs[r], s), u)
                                 if g != self.one or g != u:
                                     u = self.divmod(u, g)[0]
-                                    facs.extend([u, g])
+                                    facs |= {u, g}
                                 if len(facs) == len(vs):
-                                    return facs
+                                    return list(facs)
                         factors = facs
                         r += 1
 
-                    return factors
+                    return list(factors)
 
                 factors = []
                 polys = self.square_free_factorization(f)
@@ -363,6 +362,21 @@ class PolynomialField(Field):
 
             if method == 'cz':
                 pass
+
+            if method == 'ts':
+                factors = []
+                polys = self.square_free_factorization(f)
+                for g, k in polys:
+                    polys_ = self.distinct_degree_factorization(g)
+                    for h, j in polys_:
+                        result = self.equal_degree_factorization(h, j)
+                        for _ in range(k):
+                            factors.extend(result[:])
+
+                if c0 != self.one:
+                    factors.append(c0)
+
+                return factors
 
         raise ValueError(f"cannot factor in {self._base_ring}")
 
@@ -451,58 +465,22 @@ class PolynomialField(Field):
                 m = self._base_ring.n * n
                 return Polynomial(np.random.randint(0, self._base_ring.p, m, dtype=int), f.var)
 
-            def random2():
-                coeffs = np.random.randint(0, self._base_ring.p, (f.degree, self._base_ring.n), dtype=int)
-                coeffs = [Polynomial(c, self._var) @ self._base_ring if len(c) > 1 else c[0] for c in coeffs]
-                return Polynomial(coeffs, f.var)
-
-            def sqrt(g):
-                m = 2 ** (self._base_ring.n - 1)
-                coeffs = [self._base_ring.pow(c, m) for c in g.coefficients[::2]]
-                return Polynomial(coeffs, g.var)
-
             f = f @ self
             result = [f]
             r = f.degree // k
             while len(result) < r:
-                # Wikipedia code
+                # Original code
                 factors = []
-                h = random2()
-                if self._base_ring.p == 2:
-                    if self._base_ring.n == 1:
-                        # Don't know why but this works
-                        g = self.sub(self.pow(h, self._base_ring.q ** (k - 1)), 1)
+                for h in result:
+                    a = random(h.degree)
+                    d = self.gcd(mk(a), h)
+                    if d == self.one or d == h:
+                        factors.append(h)
                     else:
-                        # FIXME works only sometimes
-                        # This doesn't, though :(
-                        # g = self.sub(self.pow(sqrt(h), self._base_ring.q ** k - 1), 1)
-                        g = sqrt(h ** (self._base_ring.q ** k - 1)) - 1
-                else:
-                    # g = self.sub(self.pow(h, (self._base_ring.q ** k - 1) // 2), 1)
-                    g = h ** ((self._base_ring.q ** k - 1) // 2) - 1
-                g = self.divmod(g, f)[1]
-                for u in result:
-                    if u.degree == k:
-                        factors.append(u)
-                        continue
-                    gcd = self.gcd(g, u)
-                    if gcd != self.one and gcd != u:
-                        factors.extend([gcd, self.divmod(u, gcd)[0]])
-                    else:
-                        factors.append(u)
+                        factors.append(d)
+                        factors.append(self.divmod(h, d)[0])
                 result = factors
 
-                # Original code
-                # factors = []
-                # for h in result:
-                #     a = random(h.degree)
-                #     d = self.gcd(mk(a), h)
-                #     if d == self.one or d == h:
-                #         factors.append(h)
-                #     else:
-                #         factors.append(d)
-                #         factors.append(self.divmod(h, d)[0])
-                # result = factors
             return result
 
         raise ValueError(f"cannot distinct-degree factor in {self._base_ring}")
@@ -623,9 +601,9 @@ class PolynomialField(Field):
         q = self._base_ring.q
         n = f.degree
         phi = [None] * n
-        r = [self.one] + [self.zero] * (n - 1)
+        r = [self.one] + [self.zero] * (n - 1)  # <-- n
         phi[0] = r
-        coeffs = f.coefficients
+        coeffs = f.coefficients[:-1]  # <-- n
         F = self._base_ring
         for i in range(1, (n - 1) * q + 1):
             r = [F.sub(ri, F.mul(r[-1], c)) for c, ri in zip(coeffs, [self._base_ring.zero] + r[:-1])]
@@ -636,28 +614,36 @@ class PolynomialField(Field):
 
     def _ker(self, m):
         n = len(m)
+        F = self._base_ring
         for k in range(n):
             i = k
-            while i < n and m[k][i] == self._base_ring.zero:
+            while i < n and m[k][i] == F.zero:
                 i += 1
             if i < n:
                 pivot = m[k][i]
+                inv = F.inverse(pivot)
+                # Normalization
                 for j in range(n):
-                    m[j][i] = self._base_ring.mul(m[j][i], self._base_ring.inverse(pivot))
-                for j in range(n):
-                    m[j][i], m[j][k] = m[j][k], m[j][i]
-                while i < n:
+                    m[j][i] = F.mul(m[j][i], inv)
+                # Swap columns i and k
+                if i != k:
+                    for j in range(n):
+                        m[j][i], m[j][k] = m[j][k], m[j][i]
+                # Make zeros
+                for i in range(n):
                     if i == k:
                         continue
+                    mki = m[k][i]
                     for j in range(n):
-                        m[j][i] = self._base_ring.sub(m[j][i], self._base_ring.mul(m[j][k], pivot))
+                        m[j][i] = F.sub(m[j][i], F.mul(m[j][k], mki))
+
         for i in range(n):
-            m[i][i] = self._base_ring.sub(m[i][i], self._base_ring.one)
+            m[i][i] = F.sub(m[i][i], F.one)
 
         j = 0
         vs = []
         while j < n:
-            while j < n and all(a == self._base_ring.zero for a in m[j]):
+            while j < n and all(a == F.zero for a in m[j]):
                 j += 1
             if j < n:
                 vs.append(m[j])

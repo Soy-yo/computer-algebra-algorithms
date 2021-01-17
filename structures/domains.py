@@ -257,7 +257,15 @@ class PolynomialUFD(UFD):
         return self.is_irreducible(p)
 
     def factor(self, f, method=None):
-        """TODO"""
+        """
+        Returns the factorization of the given polynomial f, that is, a set of irreducible polynomials
+        f_1, ..., f_k such that f = f_1 * ... * f_k. Only implemented for integers.
+        An algorithm can be specified but for the moment there is only one implemented: Kronecker’s method.
+        :param f: Polynomial over IZ - polynomial to be factored
+        :param method: str - algorithm used fot the factorization; 'km' (Kronecker’s method) is the only valid value
+        :return: [Polynomial or int] - irreducible factors of f (ints are generated from the factorization of
+                                       content(f))
+        """
         from .integers import IntegerRing, IZ
 
         if isinstance(self._base_ring, IntegerRing):

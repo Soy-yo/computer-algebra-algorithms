@@ -216,6 +216,18 @@ class Var(Polynomial):
         super().__init__([0, 1], self)
         self.x = x
 
+    def __pow__(self, n):
+        if n < 0:
+            raise ValueError("exponent must be positive or zero")
+        if n == 0:
+            return Polynomial([1], self.x)
+        if isinstance(n, (float, np.float)) and not n.is_integer():
+            raise ValueError("exponent must be an integer")
+        if not isinstance(n, (int, np.integer)):
+            raise ValueError("exponent must be an integer")
+
+        return Polynomial([0] * n + [1], self.x)
+
     def __eq__(self, other):
         if not isinstance(other, Var):
             return False
