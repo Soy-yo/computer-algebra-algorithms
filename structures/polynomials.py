@@ -161,11 +161,12 @@ class Polynomial:
         coeffs = [i * c for (i, c) in enumerate(self._coefficients)]
         return Polynomial(coeffs[1:], self._var.x)
 
-    def _repr_coefficient(self, c, k, r):
+    def _repr_coefficient(self, c, k, latex):
         if c == 1 and k != 0:
             return ''
         if c == -1 and k != 0:
             return '-'
+        r = getattr(c, '__latex__', repr) if latex else repr
         if hasattr(c, '__len__') and len(c) > 1:
             return '(' + r(c) + ')'
         return r(c)
@@ -179,22 +180,16 @@ class Polynomial:
         return result + (f'^{{{k}}}' if latex else f'^{k}')
 
     def __latex__(self):
-        if self.degree == -1:
-            return '0'
-        latex = getattr(self._coefficients, "__latex__", repr)
-        return '+'.join([
-            self._repr_coefficient(c, k, latex) + self._repr_var(k, latex=True)
-            for k, c in reversed(list(enumerate(self._coefficients))) if c != 0
-        ]).replace('+-', '-')
+        return self.__repr__(latex=True)
 
     def _repr_latex_(self):
         return f"${self.__latex__()}$"
 
-    def __repr__(self):
+    def __repr__(self, latex=False):
         if self.degree == -1:
             return '0'
         return ' + '.join([
-            self._repr_coefficient(c, k, repr) + self._repr_var(k, latex=False)
+            self._repr_coefficient(c, k, latex=latex) + self._repr_var(k, latex=latex)
             for k, c in reversed(list(enumerate(self._coefficients))) if c != 0
         ]).replace('+ -', '- ')
 
