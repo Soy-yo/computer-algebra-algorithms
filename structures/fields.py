@@ -1,5 +1,6 @@
 import abc
 import itertools as it
+import random
 
 import numpy as np
 
@@ -301,7 +302,8 @@ class PolynomialField(Field):
         There exists three algorithms for polynomials over finite fields: Berlekamp Factorization Algorithm,
         Cantor/Zassenhaus and three-step factor and all are implemented here.
         BFA works well only when q of the finite field is relatively small.
-        Cantor/Zassenhaus algorithm is an enhanced version of Berlekamp, capable of working with larger primes.
+        Cantor/Zassenhaus algorithm is a probabilistic enhanced version of Berlekamp, capable of working with
+        larger primes.
         Three-step algorithm uses square-free factorization, distinct-degree factorization and equal-degree
         factorization.
         :param f: Polynomial over FiniteField - polynomial to be factored
@@ -320,14 +322,13 @@ class PolynomialField(Field):
             if method is None:
                 method = 'bfa'
 
-            if method == 'bfa':
+            if method == 'bfa' or method == 'cz':
                 def bfa(f):
                     phi = self._construct_phi(f)
                     for i in range(len(phi)):
                         phi[i][i] = self._base_ring.sub(phi[i][i], self._base_ring.one)
                     vs = self._ker(phi)
                     vs = [Polynomial(v, f.var) @ self for v in vs]
-
                     factors = {f}
                     r = 1
                     while len(factors) < len(vs):
@@ -346,10 +347,42 @@ class PolynomialField(Field):
 
                     return list(factors)
 
+                def cz(f):
+                    def random_linear():
+                        n = self._base_ring.n
+                        if n == 1:
+                            return tuple(np.random.randint(1, self._base_ring.p, s, dtype=int))
+                        coeffs = np.random.randint(0, self._base_ring.p, (s, n), dtype=int)
+                        for i in range(s):
+                            while (coeffs[i] == 0).all():
+                                coeffs[i] = np.random.randint(0, self._base_ring.p, n, dtype=int)
+                        return tuple(Polynomial(c, self._var) for c in coeffs)
+
+                    phi = self._construct_phi(f)
+                    for i in range(len(phi)):
+                        phi[i][i] = self._base_ring.sub(phi[i][i], self._base_ring.one)
+                    vs = self._ker(phi)
+                    vs = [Polynomial(v, f.var) @ self for v in vs]
+
+                    factors = {f}
+                    s = len(vs)
+                    while len(factors) < s:
+                        g = random.choice(tuple(h for h in factors if h.degree > 1))
+                        cs = random_linear()
+                        h = sum(c * v for c, v in zip(cs, vs))
+                        # q must be odd
+                        w = self.gcd(g, h ** ((self._base_ring.q - 1) // 2) - 1)
+                        if w not in (1, g):
+                            factors = (factors - {g}) | {w, self.divmod(g, w)[0]}
+
+                    return list(factors)
+
+                factor_fun = bfa if method == 'bfa' else cz
+
                 factors = []
                 polys = self.square_free_factorization(f)
                 for g, k in polys:
-                    result = bfa(g)
+                    result = factor_fun(g)
                     for _ in range(k):
                         # TODO maybe is not a good a idea not copying polynomials
                         factors.extend(result[:])
@@ -359,9 +392,6 @@ class PolynomialField(Field):
 
                 # Dirty fix as it was returning some ones
                 return [a for a in factors if a != self.one]
-
-            if method == 'cz':
-                pass
 
             if method == 'ts':
                 factors = []

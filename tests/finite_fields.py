@@ -145,21 +145,22 @@ class FiniteFieldsTest(unittest.TestCase):
         self.assertCountEqual([f1, f2], field.equal_degree_factorization(f, 2), "hard test")
 
     def test_factor(self):
-        for method in ['ts', 'bfa']:
+        for method in ['ts', 'bfa', 'cz']:
             t = Var('t')
             x = Var('x')
-            field = IF(2)[t]
+            if method != 'cz':
+                field = IF(2)[t]
 
-            f = (t + 1) @ field
-            self.assertCountEqual([f], field.factor(f, method=method), "easy test " + method)
+                f = (t + 1) @ field
+                self.assertCountEqual([f], field.factor(f, method=method), "easy test " + method)
 
-            g = (t + 1) @ field
-            h = t @ field
-            f = (g * h) @ field
-            self.assertCountEqual([g, h], field.factor(f, method=method), "easy test " + method)
+                g = (t + 1) @ field
+                h = t @ field
+                f = (g * h) @ field
+                self.assertCountEqual([g, h], field.factor(f, method=method), "easy test " + method)
 
-            f = (g ** 2) @ field
-            self.assertCountEqual([g, g], field.factor(f, method=method), "easy test " + method)
+                f = (g ** 2) @ field
+                self.assertCountEqual([g, g], field.factor(f, method=method), "easy test " + method)
 
             field = IF(5)[t]
             g = (2 * t + 1) @ field
@@ -172,12 +173,20 @@ class FiniteFieldsTest(unittest.TestCase):
             f = (g ** 2 * h ** 2) @ field
             self.assertCountEqual([g, g, h, h], field.factor(f, method=method), "medium test " + method)
 
-            field = IF(2, x ** 3 + x + 1)[t]
-            f1 = (t + 1) @ field
-            f2 = (t + x + 1) @ field
-            f3 = (t ** 2 + t * x + x) @ field
-            f = (f1 ** 3 * f2 ** 2 * f3) @ field
-            self.assertCountEqual([f1, f1, f1, f2, f2, f3], field.factor(f, method=method), "hard test " + method)
+            if method != 'cz':
+                field = IF(2, x ** 3 + x + 1)[t]
+                f1 = (t + 1) @ field
+                f2 = (t + x + 1) @ field
+                f3 = (t ** 2 + t * x + x) @ field
+                f = (f1 ** 3 * f2 ** 2 * f3) @ field
+                self.assertCountEqual([f1, f1, f1, f2, f2, f3], field.factor(f, method=method), "hard test " + method)
+
+            field = IF(3, x ** 2 + 1)[t]
+            f1 = (t + 2) @ field
+            f2 = (t ** 2 + t * (x + 1) + 2) @ field
+            f = (f1 ** 5 * f2 ** 3) @ field
+            self.assertCountEqual([f1, f1, f1, f1, f1, f2, f2, f2], field.factor(f, method=method),
+                                  "hard test " + method)
 
 
 if __name__ == '__main__':
