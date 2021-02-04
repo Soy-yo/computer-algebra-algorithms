@@ -14,7 +14,7 @@ Implementación de algoritmos de la asignatura Álgebra Computacional (Matemáti
 
 ## Algoritmos opcionales
 
-- [ ] Miller-Rabin.
+- [x] Miller-Rabin.
 - [ ] Multidivisión multivariable.
 - [ ] Algoritm de Buchberger
 - [ ] Pertenencia un polinomio a un ideal
