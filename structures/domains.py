@@ -1,6 +1,9 @@
 import abc
 import itertools as it
+import random
+from collections import Counter
 
+import numpy as np
 from sympy import Matrix
 from sympy.core import Rational
 
@@ -260,9 +263,11 @@ class PolynomialUFD(UFD):
         """
         Returns the factorization of the given polynomial f, that is, a set of irreducible polynomials
         f_1, ..., f_k such that f = f_1 * ... * f_k. Only implemented for integers.
-        An algorithm can be specified but for the moment there is only one implemented: Kronecker’s method.
+        One of the following algorithms can be specified: Kronecker’s method or Hensel Lifting. For the latter the
+        polynomial must be square-free.
         :param f: Polynomial over IZ - polynomial to be factored
-        :param method: str - algorithm used fot the factorization; 'km' (Kronecker’s method) is the only valid value
+        :param method: str - algorithm used for the factorization; one of 'km' (Kronecker’s method, default) or 'hl'
+                             (Hensel Lifting)
         :return: [Polynomial or int] - irreducible factors of f (ints are generated from the factorization of
                                        content(f))
         """
@@ -311,6 +316,49 @@ class PolynomialUFD(UFD):
                             return factors
                         return factors + IZ.factor(c)
                     f = Polynomial([int(c) for c in q.coefficients], f.var)
+
+            if method == 'hl':
+                from .fields import IF
+
+                def get_prime(g):
+                    lc = g.coefficients[-1]
+                    if IZ.factor_limit < lc:
+                        IZ.factor_limit = lc
+                    for i, p in sorted(enumerate(IZ._factors), key=random.random):
+                        if p != i:
+                            continue
+                        if lc % p == 0:
+                            continue
+                        field = IF(p)[self._var]
+                        h = g.derivative()
+                        if h @ field == 0:
+                            continue
+                        m = g.sylvester(h)
+                        if m.det() % p == 0:
+                            continue
+                        return p
+
+                def hl(f):
+                    p = get_prime(f)
+                    field = IF(p)[self._var]
+                    f_ = f @ field
+                    # dict-like: poly -> count
+                    factors = Counter(field.factor(f_))
+                    norm = np.linalg.norm(f.coefficients)
+                    n = int(np.ceil(np.log(2 ** (f.degree + 1) * morm, p)))
+                    # Lifting
+                    g = 1
+                    h = 1
+                    for i, (fac, k) in enumerate(factors.items()):
+                        if i < len(factors) // 2:
+                            g *= fac ** k
+                        else:
+                            h *= fac ** k
+
+                c = self.content(f)
+                f = self.primitive_part(f)
+
+                factors = []
 
         raise ValueError(f"cannot factor in {self._base_ring}")
 

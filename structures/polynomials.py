@@ -1,6 +1,7 @@
 from itertools import accumulate
 
 import numpy as np
+from sympy import Matrix
 
 
 class Polynomial:
@@ -161,6 +162,24 @@ class Polynomial:
         coeffs = [i * c for (i, c) in enumerate(self._coefficients)]
         return Polynomial(coeffs[1:], self._var.x)
 
+    def sylvester(self, q):
+        """
+        Returns the Sylvester matrix of this polynomial and q.
+        :param q: Polynomial - other polynomial
+        :return: Matrix - Sylvester matrix of self and q
+        """
+        n = self.degree + q.degree
+        matrix = [None] * n
+        i = 0
+        for j in range(q.degree):
+            matrix[i] = [0] * j + list(self.coefficients[::-1]) + [0] * (n - self.degree - j - 1)
+            i += 1
+        for j in range(self.degree):
+            matrix[i] = [0] * j + list(q.coefficients[::-1]) + [0] * (n - q.degree - j - 1)
+            i += 1
+        print(matrix)
+        return Matrix(matrix)
+
     def _repr_coefficient(self, c, k, latex):
         if c == 1 and k != 0:
             return ''
@@ -231,7 +250,7 @@ class Var(Polynomial):
     def __latex__(self):
         return self.x
 
-    def __repr__(self):
+    def __repr__(self, **kwargs):
         return self.x
 
 

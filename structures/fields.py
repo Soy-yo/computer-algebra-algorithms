@@ -307,8 +307,8 @@ class PolynomialField(Field):
         Three-step algorithm uses square-free factorization, distinct-degree factorization and equal-degree
         factorization.
         :param f: Polynomial over FiniteField - polynomial to be factored
-        :param method: str - algorithm to be used; one of 'bfa' (Berlekamp Factorization Algorithm, default), 'cz'
-                             (Cantor/Zassenhaus) or 'ts' (three-step)
+        :param method: str - algorithm to be used; one of 'bfa' (Berlekamp Factorization Algorithm), 'cz'
+                             (Cantor/Zassenhaus, default) or 'ts' (three-step)
         :return: [Polynomial] - list of factors of f
         """
         # Make the polynomial monic
@@ -320,7 +320,7 @@ class PolynomialField(Field):
 
         if isinstance(self._base_ring, FiniteField):
             if method is None:
-                method = 'bfa'
+                method = 'cz'
 
             if method == 'bfa' or method == 'cz':
                 def bfa(f):
