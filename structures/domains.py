@@ -322,43 +322,92 @@ class PolynomialUFD(UFD):
 
                 def get_prime(g):
                     lc = g.coefficients[-1]
-                    if IZ.factor_limit < lc:
-                        IZ.factor_limit = lc
-                    for i, p in sorted(enumerate(IZ._factors), key=random.random):
-                        if p != i:
-                            continue
+                    bound = lc * 20
+                    if IZ.factor_limit < bound:
+                        IZ.factor_limit = bound
+                    primes = (p for i, p in enumerate(IZ._factors) if i == p and i not in (0, 1))
+                    for p in sorted(primes, key=lambda x: random.random()):
                         if lc % p == 0:
                             continue
                         field = IF(p)[self._var]
                         h = g.derivative()
                         if h @ field == 0:
                             continue
-                        m = g.sylvester(h)
-                        if m.det() % p == 0:
-                            continue
+                        # m = g.sylvester(h)
+                        # if m.det() % p == 0:
+                        #     continue
                         return p
 
                 def hl(f):
+                    if f.degree == 1:
+                        return f, None
+
+                    original_pol = f
                     p = get_prime(f)
                     field = IF(p)[self._var]
                     f_ = f @ field
                     # dict-like: poly -> count
-                    factors = Counter(field.factor(f_))
+                    factors = Counter(field.factor(f_, method='ts'))
                     norm = np.linalg.norm(f.coefficients)
-                    n = int(np.ceil(np.log(2 ** (f.degree + 1) * morm, p)))
+                    n = int(np.ceil(np.math.log(2 ** (f.degree + 1) * norm, p)))
                     # Lifting
-                    g = 1
-                    h = 1
+                    u = 1
+                    w = 1
+
                     for i, (fac, k) in enumerate(factors.items()):
                         if i < len(factors) // 2:
-                            g *= fac ** k
+                            u = field.mul(u, self.pow(fac, k))
                         else:
-                            h *= fac ** k
+                            w = field.mul(w, self.pow(fac, k))
+                    print(u, w)
+                    # TODO: Problems
+                    lc = f.coefficients[-1]
+                    f = self.mul(lc, f)
+                    u = field.mul(lc, field.normal_part(u))
+                    w = field.mul(lc, field.normal_part(w))
+                    _, (s, t) = field.bezout(u, w)
+                    u = Polynomial(u.coefficients[:-1]._a + [lc], u.var)
+                    w = Polynomial(w.coefficients[:-1]._a + [lc], w.var)
+                    e = self.sub(f, self.mul(u, w))
+                    modulus = p
+                    bound = p ** n * lc
+                    print(p, n, bound)
+                    while e != self.zero and modulus < bound:
+                        # Division was not working
+                        c = Polynomial([ei // modulus for ei in e.coefficients], e.var)
+                        sigma_ = field.mul(s, c)
+                        tau_ = field.mul(t, c)
+                        q, r = field.divmod(sigma_, w)
+                        sigma = r
+                        tau = field.add(tau_, field.mul(q, u))
+                        u = self.add(u, field.mul(tau, modulus))
+                        w = self.add(w, field.mul(sigma, modulus))
+                        e = self.sub(f, self.mul(u, w))
+                        modulus = modulus * p
+
+                    if e == self.zero:
+                        delta = self.content(u)
+                        u = self.divmod(u, delta, pseudo=False)[0]
+                        w = self.divmod(w, lc // delta, pseudo=False)[0]
+                        print(u, w)
+                        return u, w
+                    return original_pol, None
 
                 c = self.content(f)
                 f = self.primitive_part(f)
-
                 factors = []
+                remaining = [f]
+                while remaining:
+                    g = remaining.pop()
+                    a, b = hl(g)
+                    if b is not None:
+                        remaining.extend([a, b])
+                    else:
+                        factors.append(a)
+                if c != 1:
+                    factors.extend(IZ.factor(c))
+
+                return factors
 
         raise ValueError(f"cannot factor in {self._base_ring}")
 

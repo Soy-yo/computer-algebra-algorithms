@@ -177,7 +177,6 @@ class Polynomial:
         for j in range(self.degree):
             matrix[i] = [0] * j + list(q.coefficients[::-1]) + [0] * (n - q.degree - j - 1)
             i += 1
-        print(matrix)
         return Matrix(matrix)
 
     def _repr_coefficient(self, c, k, latex):
@@ -282,7 +281,7 @@ class Coefficients:
 
     def __setitem__(self, key, value):
         if isinstance(key, (int, np.integer)):
-            self._[key] = value
+            self._a[key] = value
         elif isinstance(key, slice):
             for i, v in zip(range(key.start, key.stop, key.step), value):
                 self._a[i] = v

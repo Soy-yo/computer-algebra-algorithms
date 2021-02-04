@@ -167,7 +167,6 @@ class IntegerRing(EuclideanDomain):
         """
         # Initialization
         n = n @ self
-        m = int(np.sqrt(n))
         self._factors = np.zeros(n, dtype=np.int64)
         self._factor_limit = n
         for i in range(1, n, 2):
@@ -175,7 +174,7 @@ class IntegerRing(EuclideanDomain):
         for i in range(2, n, 2):
             self._factors[i] = 2
 
-        for i in range(3, m):
+        for i in range(3, n):
             if self._factors[i] == i:
                 for j in range(i * i, n, i):
                     if self._factors[j] == j:

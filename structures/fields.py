@@ -96,7 +96,12 @@ class FiniteField(Field):
         a = a @ self
         if isinstance(a, Polynomial):
             return (a ** n) @ self
-        return pow(a, n, mod=self.p)
+        if isinstance(a, np.integer):
+            a = int(a)
+        if isinstance(n, np.integer):
+            n = int(n)
+        p = int(self.p) if isinstance(self.p, np.integer) else self.p
+        return pow(a, n, mod=p)
 
     def inverse(self, a):
         if self._n == 1:
