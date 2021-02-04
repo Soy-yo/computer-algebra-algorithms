@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 from structures.domains import EuclideanDomain, PolynomialUFD
 from structures.rings import UnitaryRing, CommutativeRing
@@ -100,7 +101,8 @@ class IntegerRing(EuclideanDomain):
         Determines whether the element p is prime or not. This can be done through three algorithms: AKS, Miller-Rabin
         or brute force.
         AKS is efficient for detecting composite numbers, but is very slow for detecting big primes.
-        Miller-Rabin is a probabilistic algorithm, so it may fail, but this makes it faster in case of success.
+        Miller-Rabin is a probabilistic algorithm, so it may fail, but this makes it faster in case of success. If p is
+        composite, running k iterations will declare p prime with a probability at most 4^-k. k is now 100.
         Brute force uses the prime factor decomposition of the number, which is fast with small numbers, but cannot
         be computed with very large ones as it uses a lot of memory.
         :param p: int - element to be checked
@@ -142,14 +144,59 @@ class IntegerRing(EuclideanDomain):
             return True
 
         if method == 'mr':
-            # TODO Miller-Rabin
-            return len(self.factor(p)) == 1
+            # Source: https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
+            # Input must be p > 3
+            if p < 0:
+                p = -p
+            if p == 1:
+                return False
+            elif p == 2 or p == 3:
+                return True
+            # Write n as 2^r · d + 1 with d odd
+            n = p - 1
+            r = 0
+            while n % 2 == 0:
+                r += 1
+                n = n // 2
+            d = n
+            k = 100
+            for _ in range(0, k):
+                a = random.randint(2, p - 2)
+                x = (a ** d) % p
+                if x == 1 or x == p - 1:
+                    continue
+                finish = False
+                for _ in range(0, r - 1):
+                    x = (x ** 2) % p
+                    if x == p - 1:
+                        finish = True
+                        break
+                if finish:
+                    continue
+                return False
+            return True
 
         if method == 'bf':
             # Brute force
             return len(self.factor(p)) == 1
 
         raise ValueError(f"unknown method {method} (expecting one of 'aks', 'mr' or 'bf')")
+
+    def get_random_prime(self, b):
+        """
+        Miller-Rabin test can be easily used for generating random primes of certain size.
+        :param b: int - number of bits of the desired prime
+        :return: int - prime number with probability 4^-k (where k=100 is fixed in Miller-Rabin algorithm)
+        """
+        while True:
+            odd = False
+            while not odd:
+                a = random.randint(2 ** (b - 1), 2 ** b - 1)
+                if a % 2 != 0:
+                    odd = True
+            if self.is_prime(a, 'mr'):
+                return a
+
 
     @property
     def factor_limit(self):
