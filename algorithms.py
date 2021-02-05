@@ -3,6 +3,7 @@ from functools import reduce
 import numpy as np
 
 from structures.integers import IZ, ModuloIntegers
+from structures.multinomial import Multinomial
 
 
 def solve_congruences(a, b, n=None):
@@ -58,3 +59,43 @@ def solve_congruences(a, b, n=None):
         result += y * ri * bi
 
     return result @ ring, ring
+
+
+def multidivision(f, fs, field):
+    h = f
+
+    def get_next():
+        hexps = h.degree_exp
+        for i, g in enumerate(fs):
+            gexps = g.degree_exp
+            if all(ge <= he for ge, he in zip(gexps, hexps)):
+                return i
+        return None
+
+    aa = [field.zero for _ in range(len(fs))]
+    r = field.zero
+    while h != field.zero:
+        i = get_next()
+        while i is not None:
+            hexps = h.degree_exp
+            hlc = h.leading_coefficient
+
+            fi = fs[i]
+            flc = fi.leading_coefficient
+            fexps = fi.degree_exp
+
+            # d = lt(h) / lt(fi)
+            dlc = field.div(hlc, flc)
+            dexps = tuple(he - fe for fe, he in zip(fexps, hexps))
+            d = Multinomial({dexps: dlc}, h.variables)
+            aa[i] = (aa[i] + d) @ field
+            h = (h - d * fi) @ field
+
+            i = get_next()
+
+        hlt = h.leading_term
+        r = (r + hlt) @ field
+        # No need to fix anything here
+        h -= hlt
+
+    return tuple(aa + [r])

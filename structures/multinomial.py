@@ -1,6 +1,6 @@
 import numpy as np
 
-from structures import Var
+from structures.polynomials import Var
 
 
 def link(*variables):
@@ -73,12 +73,27 @@ class Multinomial:
         return self._degree
 
     @property
+    def degree_exp(self):
+        """
+        Returns the exponent associated with the term with highest degree.
+        :return: (int, ..., int) - exponents of the term with highest degree
+        """
+        lt = self.leading_term
+        if lt == 0:
+            return (0,) * len(self._variables)
+        exp, = lt._coefficients.keys()
+        return exp
+
+    @property
     def leading_term(self):
         """
         Returns the leading term of this polynomial, that is the term with highest degree.
         :return: Multinomial - leading term as polynomial
         """
         if self._lt is None:
+            if not self._coefficients:
+                self._lt = Multinomial({}, self._variables)
+                return self._lt
             # Get the coefficient with maximum degree
             # In case of draw choose the one which leading variable degree is higher
             e, c = max(self._coefficients.items(), key=lambda x: (sum(x[0]), x[0]))
@@ -125,6 +140,19 @@ class Multinomial:
 
     def __len__(self):
         return self.terms
+
+    def used_vars(self):
+        """
+        Returns a tuple with the vars that are effectively being used in this polynomial. For instance,
+        (f(x, y, z) = x^2 + z).used_vars() == (x, z).
+        :return: (any, ..., any) - all vars that are being used by this polynomial
+        """
+        result = [False] * len(self._variables)
+        for e in self._coefficients.keys():
+            for i, ei in enumerate(e):
+                if ei > 0:
+                    result[i] = True
+        return tuple(self._variables[b] for b in result)
 
     def without_vars(self, *xs):
         """
@@ -252,7 +280,7 @@ class Multinomial:
 
     def __eq__(self, q):
         if not isinstance(q, Multinomial):
-            if self.degree != 0:
+            if self.degree > 0:
                 return False
             return self.independent_term == q
 
@@ -293,6 +321,10 @@ class Multinomial:
             coeffs[tuple(e_)] += w
 
         return Multinomial(coeffs, self._variables)
+
+    def __matmul__(self, ring):
+        # Calls @ for all coefficients
+        return Multinomial({e: c @ ring for e, c in self._coefficients.items()}, self._variables)
 
     def derivative(self, x):
         """

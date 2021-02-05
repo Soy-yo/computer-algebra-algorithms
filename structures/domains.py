@@ -359,7 +359,6 @@ class PolynomialUFD(UFD):
                             u = field.mul(u, self.pow(fac, k))
                         else:
                             w = field.mul(w, self.pow(fac, k))
-                    print(u, w)
                     # TODO: Problems
                     # Step 1
                     lc = f.coefficients[-1]
@@ -377,8 +376,6 @@ class PolynomialUFD(UFD):
                     modulus = p
                     bound = p ** n * lc
 
-                    print(' ', ' ', u, w, e, sep=' || ', end='\n===================\n')
-
                     # Step 4
                     while e != self.zero and modulus < bound:
                         # 4.1 Solve sigma * u + tau * w = c mod p
@@ -389,7 +386,6 @@ class PolynomialUFD(UFD):
                         q, r = field.divmod(sigma_, w)
                         sigma = r
                         tau = field.add(tau_, field.mul(q, u))
-                        print(sigma, tau, u, w, e, sep=' || ', end='\n===================\n')
 
                         # 4.2 Update factors and compute error
                         u = self.add(u, self.mul(tau, modulus))
