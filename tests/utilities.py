@@ -50,6 +50,8 @@ class UtilitiesTest(unittest.TestCase):
         x, y = link('x', 'y')
         field = IF(7)
 
+        set_ordering('dp')
+
         f1 = (x ** 3) @ field
         f2 = (x ** 2 * y + 6 * y ** 4) @ field
         self.assertCountEqual([f1, f2], groebner_basis([f1, f2], field), "easy test")
@@ -73,6 +75,29 @@ class UtilitiesTest(unittest.TestCase):
         f3 = ((y + z + 1) * x + y * z + z + 2) @ field
         f4 = (x ** 2 + x + y - 1) @ field
         self.assertCountEqual([f1, f2, f3, f4], groebner_basis([f1, f2, f3, f4], field), "medium test")
+
+    def test_ideal(self):
+        x, y = link('x', 'y')
+        field = IF(7)
+
+        set_ordering('dp')
+
+        f1 = (x ** 3) @ field
+        f2 = (x ** 2 * y + 6 * y ** 4) @ field
+        self.assertTrue(in_ideal(f1, [f1, f2], field), "easy test")
+        self.assertTrue(in_ideal(f2, [f1, f2], field), "easy test")
+        self.assertTrue(in_ideal(3 * y ** 2 * f1 + x * f2, [f1, f2], field), "easy test")
+        self.assertFalse(in_ideal(f1 + f2 + x, [f1, f2], field), "medium test")
+
+        set_ordering('lp')
+
+        self.assertTrue(in_ideal((y ** 7) @ field, [f1, f2], field), "medium test")
+        self.assertTrue(in_ideal(f1 + f2 + y ** 7, [f1, f2], field), "medium test")
+
+        x, y, z = link('x', 'y', 'z')
+        f1 = (x * y - 1) @ field
+        f2 = (x * z - 1) @ field
+        self.assertFalse(in_ideal(2 * f1 + z * f2 + (x + y) * (y - z) + y ** 2, [f1, f2], field), "medium test")
 
 
 if __name__ == '__main__':

@@ -111,6 +111,14 @@ def multidivision(f, fs, field):
 
 
 def groebner_basis(fs, field):
+    """
+    Returns the Gröbner basis of the polynomials in fs over the given field, that is, a set of polynomials that
+    generate the leading ideal containing those polynomials ({lt(f) : f in fs}).
+    :param fs: [Multinomial] - polynomials contained in the leading ideal
+    :param field: Field - base field where the polynomials live in
+    :return: [Multinomiañ] - the Grôbner basis of the given polynomials
+    """
+
     def spoly(f, g):
         alpha = f.degree_exp
         beta = g.degree_exp
@@ -131,3 +139,15 @@ def groebner_basis(fs, field):
             basis.append(h)
 
     return basis
+
+
+def in_ideal(f, fs, field):
+    """
+    Determines if f is contained in the leading ideal that contains all polynomials in fs.
+    :param f: Multinomial - polynomial to be checked
+    :param fs: [Multinomial] - polynomials in the leading ideal
+    :param field: Field - base field where the polynomials live in
+    :return: bool - True if f is contained in the ideal, False otherwise
+    """
+    basis = groebner_basis(fs, field)
+    return multidivision(f, basis, field)[-1] == 0
