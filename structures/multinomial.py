@@ -31,6 +31,20 @@ def link(*variables):
     return result
 
 
+_ordering = 'dp'
+
+
+def set_ordering(o):
+    """
+    Sets the ordering used to compute leading terms in polynomials.
+    :param o: str - new ordering: one of dp (degree ordering, initial) or lp (lexicographic order)
+    """
+    if o not in ('dp', 'lp'):
+        raise ValueError(f"ordering must be either dp or lp (received {o})")
+    global _ordering
+    _ordering = o
+
+
 class Multinomial:
     """
     Class representing a multivariate ploynomial sum(x^alpha; alpha) for x = (x_1, ..., x_n) and
@@ -94,9 +108,9 @@ class Multinomial:
             if not self._coefficients:
                 self._lt = Multinomial({}, self._variables)
                 return self._lt
-            # Get the coefficient with maximum degree
-            # In case of draw choose the one which leading variable degree is higher
-            e, c = max(self._coefficients.items(), key=lambda x: (sum(x[0]), x[0]))
+            # Get the maximum term relatively to the ordering
+            key = (lambda x: (sum(x[0]), x[0])) if _ordering == 'dp' else None
+            e, c = max(self._coefficients.items(), key=key)
             self._lt = Multinomial({e: c}, self._variables)
 
         return self._lt

@@ -62,6 +62,15 @@ def solve_congruences(a, b, n=None):
 
 
 def multidivision(f, fs, field):
+    """
+    Computes the multidivision between f and a set of polynomials f1, ..., fk in K[x1, ..., xr], that is,
+    a set of quotients q1, ..., qk and a remainder r such that f = q1 f1 + ... + qk fk + r.
+    :param f: Multinomial - dividend
+    :param fs: [Multinomial] - divisors
+    :param field: Field - base field where the polynomials live in (the K mentioned above)
+    :return: (Multinomial, ..., Multinomial) - a tuple containing k quotients in the same order as the divisors and the
+                                               remainder as its last component
+    """
     h = f
 
     def get_next():
@@ -99,3 +108,26 @@ def multidivision(f, fs, field):
         h -= hlt
 
     return tuple(aa + [r])
+
+
+def groebner_basis(fs, field):
+    def spoly(f, g):
+        alpha = f.degree_exp
+        beta = g.degree_exp
+        gamma = tuple(max(ai, bi) for ai, bi in zip(alpha, beta))
+        exp1 = tuple(gi - ai for ai, gi in zip(alpha, gamma))
+        exp2 = tuple(gi - bi for bi, gi in zip(beta, gamma))
+        h1 = Multinomial({exp1: 1}, f.variables)
+        h2 = Multinomial({exp2: 1}, g.variables)
+        return (g.leading_coefficient * h1 * f - f.leading_coefficient * h2 * g) @ field
+
+    basis = fs[:]
+    p = [(fs[i], fs[j]) for i in range(len(fs)) for j in range(i + 1, len(fs))]
+    while p:
+        f, g = p.pop()
+        h = multidivision(spoly(f, g), basis, field)[-1]
+        if h != 0:
+            p.extend([(h, f) for f in basis])
+            basis.append(h)
+
+    return basis

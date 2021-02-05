@@ -1,7 +1,7 @@
 import unittest
 
 from algorithms import *
-from structures import link, IF
+from structures import link, set_ordering, IF
 
 
 class UtilitiesTest(unittest.TestCase):
@@ -45,6 +45,34 @@ class UtilitiesTest(unittest.TestCase):
         fs = [x ** 2, x * y ** 2, z - y]
         q1, q2, q3, r = multidivision(f, fs, field)
         self.assertEqual(f @ field, (q1 * fs[0] + q2 * fs[1] + q3 * fs[2] + r) @ field, "hard test")
+
+    def test_groebner(self):
+        x, y = link('x', 'y')
+        field = IF(7)
+
+        f1 = (x ** 3) @ field
+        f2 = (x ** 2 * y + 6 * y ** 4) @ field
+        self.assertCountEqual([f1, f2], groebner_basis([f1, f2], field), "easy test")
+
+        set_ordering('lp')
+
+        f1 = (x ** 3) @ field
+        f2 = (x ** 2 * y + 6 * y ** 4) @ field
+        f3 = (x * y ** 4) @ field
+        f4 = (y ** 7) @ field
+        self.assertCountEqual([f1, f2, f3, f4], groebner_basis([f1, f2], field), "medium test")
+
+        x, y, z = link('x', 'y', 'z')
+        f1 = (x * y - 1) @ field
+        f2 = (x * z - 1) @ field
+        f3 = (y - z) @ field
+        self.assertCountEqual([f1, f2, f3], groebner_basis([f1, f2], field), "medium test")
+
+        f1 = (z ** 2 - 2) @ field
+        f2 = (y ** 2 + 2 * y - 1) @ field
+        f3 = ((y + z + 1) * x + y * z + z + 2) @ field
+        f4 = (x ** 2 + x + y - 1) @ field
+        self.assertCountEqual([f1, f2, f3, f4], groebner_basis([f1, f2, f3, f4], field), "medium test")
 
 
 if __name__ == '__main__':
