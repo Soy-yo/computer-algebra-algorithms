@@ -1,6 +1,5 @@
 import abc
 import itertools as it
-import random
 from collections import Counter
 
 import numpy as np
@@ -323,10 +322,10 @@ class PolynomialUFD(UFD):
                 def get_prime(g):
                     lc = g.coefficients[-1]
                     bound = lc * 20
-                    if IZ.factor_limit < bound:
+                    if IZ.factor_limit is None or IZ.factor_limit < bound:
                         IZ.factor_limit = bound
                     primes = (p for i, p in enumerate(IZ._factors) if i == p and i not in (0, 1))
-                    for p in sorted(primes, key=lambda x: random.random()):
+                    for p in primes:
                         if lc % p == 0:
                             continue
                         field = IF(p)[self._var]
@@ -342,6 +341,7 @@ class PolynomialUFD(UFD):
                     if f.degree == 1:
                         return f, None
 
+                    # Initialization
                     original_pol = f
                     p = get_prime(f)
                     field = IF(p)[self._var]
@@ -361,18 +361,27 @@ class PolynomialUFD(UFD):
                             w = field.mul(w, self.pow(fac, k))
                     print(u, w)
                     # TODO: Problems
+                    # Step 1
                     lc = f.coefficients[-1]
                     f = self.mul(lc, f)
                     u = field.mul(lc, field.normal_part(u))
                     w = field.mul(lc, field.normal_part(w))
+
+                    # Step 2
                     _, (s, t) = field.bezout(u, w)
-                    u = Polynomial(u.coefficients[:-1]._a + [lc], u.var)
-                    w = Polynomial(w.coefficients[:-1]._a + [lc], w.var)
+
+                    # Step 3
+                    u = Polynomial(list(u.coefficients)[:-1] + [lc], u.var)
+                    w = Polynomial(list(w.coefficients)[:-1] + [lc], w.var)
                     e = self.sub(f, self.mul(u, w))
                     modulus = p
                     bound = p ** n * lc
-                    print(p, n, bound)
+
+                    print(' ', ' ', u, w, e, sep=' || ', end='\n===================\n')
+
+                    # Step 4
                     while e != self.zero and modulus < bound:
+                        # 4.1 Solve sigma * u + tau * w = c mod p
                         # Division was not working
                         c = Polynomial([ei // modulus for ei in e.coefficients], e.var)
                         sigma_ = field.mul(s, c)
@@ -380,11 +389,15 @@ class PolynomialUFD(UFD):
                         q, r = field.divmod(sigma_, w)
                         sigma = r
                         tau = field.add(tau_, field.mul(q, u))
-                        u = self.add(u, field.mul(tau, modulus))
-                        w = self.add(w, field.mul(sigma, modulus))
-                        e = self.sub(f, self.mul(u, w))
-                        modulus = modulus * p
+                        print(sigma, tau, u, w, e, sep=' || ', end='\n===================\n')
 
+                        # 4.2 Update factors and compute error
+                        u = self.add(u, self.mul(tau, modulus))
+                        w = self.add(w, self.mul(sigma, modulus))
+                        e = self.sub(f, self.mul(u, w))
+                        modulus *= p
+
+                    # Step 5
                     if e == self.zero:
                         delta = self.content(u)
                         u = self.divmod(u, delta, pseudo=False)[0]
@@ -401,7 +414,14 @@ class PolynomialUFD(UFD):
                     g = remaining.pop()
                     a, b = hl(g)
                     if b is not None:
-                        remaining.extend([a, b])
+                        if a == self.one:
+                            # Completely factored in b
+                            factors.append(b)
+                        elif b == self.one:
+                            # Completely factored in a
+                            factors.append(a)
+                        else:
+                            remaining.extend([a, b])
                     else:
                         factors.append(a)
                 if c != 1:

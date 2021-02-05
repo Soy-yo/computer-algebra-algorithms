@@ -16,6 +16,6 @@ Implementación de algoritmos de la asignatura Álgebra Computacional (Matemáti
 
 - [x] Miller-Rabin.
 - [ ] Multidivisión multivariable.
-- [ ] Algoritm de Buchberger
+- [ ] Algoritmo de Buchberger
 - [ ] Pertenencia un polinomio a un ideal
 - [x] Exponenciación rápida (repeated squaring)
