@@ -1,6 +1,6 @@
 import unittest
 
-from structures import Var, IZ, IF
+from compalg import Var, IZ, IF
 
 
 class GCDTest(unittest.TestCase):

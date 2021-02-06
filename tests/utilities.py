@@ -1,7 +1,7 @@
 import unittest
 
 from algorithms import *
-from structures import link, set_ordering, IF
+from compalg import link, set_ordering, IF
 
 
 class UtilitiesTest(unittest.TestCase):

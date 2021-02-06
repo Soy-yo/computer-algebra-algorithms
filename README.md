@@ -9,7 +9,7 @@ Implementación de algoritmos de la asignatura Álgebra Computacional (Matemáti
 - [x] Logaritmo discreto en cuerpos Fq[x]/(f(x)).
 - [x] Algoritmo de factorización de un polinomio en cuerpo finito parte 1, 2 y 3.
 - [x] Algoritmo de factorizacion de Berlekamp en cuerpos finitos.
-- [ ] Algorimos de factorizacion en Z[x].
+- [x] Algorimos de factorizacion en Z[x].
 - [x] Algorimo de primalidad de AKS.
 
 ## Algoritmos opcionales

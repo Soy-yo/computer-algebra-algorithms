@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from structures import IZ
+from compalg import IZ
 
 
 class PrimalityTest(unittest.TestCase):

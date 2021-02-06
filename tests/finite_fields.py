@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from structures import IF, Var
+from compalg import IF, Var
 
 
 class FiniteFieldsTest(unittest.TestCase):

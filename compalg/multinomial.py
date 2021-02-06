@@ -1,6 +1,6 @@
 import numpy as np
 
-from structures.polynomials import Var
+from compalg.polynomials import Var
 
 
 def link(*variables):

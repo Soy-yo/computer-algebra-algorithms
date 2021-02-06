@@ -4,10 +4,10 @@ import random
 
 import numpy as np
 
-from structures.domains import Domain
-from structures.integers import IZ, ModuloIntegers
-from structures.polynomials import Var, Polynomial
-from structures.rings import DivisionRing, CommutativeRing
+from compalg.domains import Domain
+from compalg.integers import IZ, ModuloIntegers
+from compalg.polynomials import Var, Polynomial
+from compalg.rings import DivisionRing, CommutativeRing
 
 
 class Field(DivisionRing, CommutativeRing, Domain, abc.ABC):

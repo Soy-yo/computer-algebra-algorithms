@@ -2,8 +2,8 @@ from functools import reduce
 
 import numpy as np
 
-from structures.integers import IZ, ModuloIntegers
-from structures.multinomial import Multinomial
+from compalg.integers import IZ, ModuloIntegers
+from compalg.multinomial import Multinomial
 
 
 def solve_congruences(a, b, n=None):

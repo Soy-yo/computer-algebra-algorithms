@@ -2,8 +2,8 @@ import random
 
 import numpy as np
 
-from structures.domains import EuclideanDomain, PolynomialUFD
-from structures.rings import UnitaryRing, CommutativeRing
+from compalg.domains import EuclideanDomain, PolynomialUFD
+from compalg.rings import UnitaryRing, CommutativeRing
 
 
 class IntegerRing(EuclideanDomain):

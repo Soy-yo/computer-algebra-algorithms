@@ -1,6 +1,6 @@
 import unittest
 
-from structures import IZ, Var
+from compalg import IZ, Var
 
 
 class IntegerFactorization(unittest.TestCase):

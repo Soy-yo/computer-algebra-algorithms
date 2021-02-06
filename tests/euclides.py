@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from structures import IZ
+from compalg import IZ
 
 
 class IntTest(unittest.TestCase):

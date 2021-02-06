@@ -6,8 +6,8 @@ import numpy as np
 from sympy import Matrix
 from sympy.core import Rational
 
-from structures.polynomials import Polynomial, Var
-from structures.rings import Ring, CommutativeRing, UnitaryRing
+from compalg.polynomials import Polynomial, Var
+from compalg.rings import Ring, CommutativeRing, UnitaryRing
 
 
 class Domain(Ring, abc.ABC):
