@@ -337,6 +337,33 @@ class PolynomialUFD(UFD):
                         #     continue
                         return p
 
+                def recombine(ucoeffs, wcoeffs, f, q, i=0):
+                    # Find which representations of coefficients in u and w must be used (O(2^deg(f)) :D)
+                    if i >= len(ucoeffs) + len(wcoeffs) - 1:
+                        return None, None
+                    # index i positive
+                    u = Polynomial(ucoeffs, f.var)
+                    w = Polynomial(wcoeffs, f.var)
+                    if u * w == f:
+                        return u, w
+                    u_, w_ = recombine(ucoeffs, wcoeffs, f, q, i + 1)
+                    if u_ is not None:
+                        return u_, w_
+                    if i < len(ucoeffs):
+                        temp = ucoeffs[:]
+                        temp[i] -= q
+                        u_ = Polynomial(temp, f.var)
+                        if u_ * w == f:
+                            return u_, w
+                        return recombine(temp, wcoeffs, f, q, i + 1)
+                    else:
+                        temp = wcoeffs[:]
+                        temp[i - len(ucoeffs)] -= q
+                        w_ = Polynomial(temp, f.var)
+                        if u * w_ == f:
+                            return u, w_
+                        return recombine(ucoeffs, temp, f, q, i + 1)
+
                 def hl(f):
                     if f.degree == 1:
                         return f, None
@@ -359,7 +386,7 @@ class PolynomialUFD(UFD):
                             u = field.mul(u, self.pow(fac, k))
                         else:
                             w = field.mul(w, self.pow(fac, k))
-                    # TODO: Problems
+
                     # Step 1
                     lc = f.coefficients[-1]
                     f = self.mul(lc, f)
@@ -372,12 +399,17 @@ class PolynomialUFD(UFD):
                     # Step 3
                     u = Polynomial(list(u.coefficients)[:-1] + [lc], u.var)
                     w = Polynomial(list(w.coefficients)[:-1] + [lc], w.var)
+
+                    # Dirty fix for finding the correct representation of u and w
+                    u_, w_ = recombine(list(u.coefficients), list(w.coefficients), f, p)
+                    if u_ is not None:
+                        return u_, w_
                     e = self.sub(f, self.mul(u, w))
                     modulus = p
-                    bound = p ** n * lc
+                    bound = p ** (n + 1) * lc
 
                     # Step 4
-                    while e != self.zero and modulus < bound:
+                    while modulus < bound:
                         # 4.1 Solve sigma * u + tau * w = c mod p
                         # Division was not working
                         c = Polynomial([ei // modulus for ei in e.coefficients], e.var)
@@ -390,16 +422,13 @@ class PolynomialUFD(UFD):
                         # 4.2 Update factors and compute error
                         u = self.add(u, self.mul(tau, modulus))
                         w = self.add(w, self.mul(sigma, modulus))
-                        e = self.sub(f, self.mul(u, w))
                         modulus *= p
+                        u_, w_ = recombine(list(u.coefficients), list(w.coefficients), f, modulus)
+                        if u_ is not None:
+                            return u_, w_
+                        e = self.sub(f, self.mul(u, w))
 
                     # Step 5
-                    if e == self.zero:
-                        delta = self.content(u)
-                        u = self.divmod(u, delta, pseudo=False)[0]
-                        w = self.divmod(w, lc // delta, pseudo=False)[0]
-                        print(u, w)
-                        return u, w
                     return original_pol, None
 
                 c = self.content(f)
