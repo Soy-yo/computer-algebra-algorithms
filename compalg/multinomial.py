@@ -320,7 +320,6 @@ class Multinomial:
             values[i] = v
 
         coeffs = dict()
-        # TODO it is not very efficient
         for e, c in self._coefficients.items():
             w = c
             e_ = list(e)
@@ -392,10 +391,10 @@ class Multinomial:
             return ''
         if c == -1 and not isit:
             return '-'
-        r = getattr(c, '__latex__', repr) if latex else repr
+        r = getattr(c, '__latex__', lambda: repr(c)) if latex else lambda: repr(c)
         if hasattr(c, '__len__') and len(c) > 1:
-            return '(' + r(c) + ')'
-        return r(c)
+            return '(' + r() + ')'
+        return r()
 
     def _repr_vars(self, alpha, latex):
         def repr_var(x, k):

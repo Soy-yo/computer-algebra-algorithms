@@ -44,7 +44,6 @@ class IntegerRing(EuclideanDomain):
         return a * b
 
     def divmod(self, a, b):
-        # TODO check // and % do what we want (specially for negative integers)
         a = a @ self
         b = b @ self
         return a // b, a % b

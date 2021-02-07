@@ -192,7 +192,6 @@ class EuclideanDomain(UFD, abc.ABC):
         return self.gcd(a, b) == self.one
 
 
-# TODO sobreescribir __div__ para poder hacer IZ_p[x]/(f(x))
 class PolynomialUFD(UFD):
     """
     Class representing D[x], an UFD of polynomials over a domain D with variable x.
@@ -242,7 +241,6 @@ class PolynomialUFD(UFD):
         b = b @ self
         return a == b
 
-    # TODO ???
     def is_unit(self, a):
         pass
 
@@ -554,7 +552,6 @@ class PolynomialUFD(UFD):
 
         return quotient, remainder
 
-    # TODO sacar fuera las funciones repetidas
     def gcd(self, a, b, *args):
         c = self.primitive_part(a)
         d = self.primitive_part(b)

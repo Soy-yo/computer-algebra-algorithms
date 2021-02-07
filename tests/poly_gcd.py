@@ -38,7 +38,6 @@ class GCDTest(unittest.TestCase):
         self.assertEqual(4 * a, ufd.gcd(p, q), "same base test")
 
     def test_field(self):
-        # TODO test with Q
         t = Var('t')
 
         field = IF(7)[t]

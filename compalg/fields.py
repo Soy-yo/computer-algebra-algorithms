@@ -28,7 +28,6 @@ class FiniteField(Field):
     taken as the ones with degree lower than n.
     """
 
-    # TODO generate base polynomial if possible
     def __init__(self, p, base_poly=None):
         """
         :param p: int - prime number, desired modulo Z_p
@@ -148,7 +147,6 @@ class FiniteField(Field):
         if h == self.zero or g == self.zero:
             raise ValueError("cannot compute logarithm of 0 or with base 0")
 
-        # TODO check if g is a generator of whatever group it should be
         n = self.q - 1
         if self._n == 1:
             n //= 2
@@ -193,7 +191,7 @@ class FiniteField(Field):
         return isinstance(other, FiniteField) and self.q == other.q and self._base_poly == other._base_poly
 
     def __latex__(self):
-        return fr"\mathbb{{F}}_{self.q}"
+        return fr"\mathbb{{F}}_{{{self.q}}}"
 
 
 IF = FiniteField
@@ -389,7 +387,6 @@ class PolynomialField(Field):
                 for g, k in polys:
                     result = factor_fun(g)
                     for _ in range(k):
-                        # TODO maybe is not a good a idea not copying polynomials
                         factors.extend(result[:])
 
                 if c0 != self.one:

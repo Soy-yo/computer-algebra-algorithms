@@ -42,9 +42,6 @@ class FiniteFieldsTest(unittest.TestCase):
         self.assertFalse(field.is_irreducible(t ** 2 - (x + 1)), "medium test False")  # (t - x) * (t + x)
 
         field = IF(3, x ** 2 - x - 1)[t]
-        # TODO too slow :(
-        # self.assertFalse(field.is_irreducible(t ** 3 + t ** 2 + t - x), "medium test False")
-        # (t + x) * (t ** 2 - (x - 1) * t - 1)
         self.assertTrue(field.is_irreducible(t ** 2 - t * (x - 1) - 1), "medium test True")
 
     def test_logarithm(self):

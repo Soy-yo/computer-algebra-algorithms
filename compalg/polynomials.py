@@ -184,10 +184,10 @@ class Polynomial:
             return ''
         if c == -1 and k != 0:
             return '-'
-        r = getattr(c, '__latex__', repr) if latex else repr
+        r = getattr(c, '__latex__', lambda: repr(c)) if latex else lambda: repr(c)
         if hasattr(c, '__len__') and len(c) > 1:
-            return '(' + r(c) + ')'
-        return r(c)
+            return '(' + r() + ')'
+        return r()
 
     def _repr_var(self, k, latex):
         if k == 0:
